@@ -26,6 +26,9 @@ def nulltermstr(b):
     s = b[:i].decode('utf-8')
     return s, i
 
+def blizdecode(b):
+    pass
+
 RACES = {
     0x01: 'human',
     0x02: 'orc',
@@ -154,7 +157,11 @@ class File(object):
         offset = 4  # first four bytes have unknown meaning
         self.players = [Player.from_raw(data[offset:])]
         offset += self.players[0].size
-        print(self.players[0])
+        self.game_name, i = nulltermstr(data[offset:])
+        offset += i + 1
+        offset += 1  # extra null byte after game name
+        print(self.game_name)
+        
 
 if __name__ == '__main__':
     f = File(sys.argv[1])
