@@ -26,8 +26,48 @@ def nulltermstr(b):
     s = b[:i].decode('utf-8')
     return s, i
 
+def blizdecomp(b):
+    """Performs wacky blizard 'decompression' and returns bytes and len in 
+    original string.
+    """
+    if isinstance(b, str):
+        b = list(map(b2i, b))
+    d = []
+    pos = 0
+    mask = None
+    while b[pos] != 0:
+        if pos%8 == 0:
+            mask = b[pos]
+        elif ((mask & (0x1 << (pos%8))) == 0):
+            d.append(b[pos] - 1)
+        else:
+            d.append(b[pos])
+        pos += 1
+    if bytes == str:
+        d = b''.join(map(chr, d))
+    else:
+        d = bytes(d)
+    return d, pos
+
 def blizdecode(b):
-    pass
+    d, l = blizdecomp(b)
+    return d.decode(), l
+
+def bits(b):
+    """Returns the bits in a byte"""
+    if isinstance(b, str):
+        b = ord(b)
+    return tuple([(b >> i) & 1 for i in range(8)])
+
+def bitfield(b, idx):
+    """Returns an integer representing the bit field. idx may be a slice."""
+    f = bits(b)[idx]
+    if f != 0 and f != 1:
+        val = 0
+        for i, x in enumerate(f):
+            val += x * 2**i
+        f = val
+    return f
 
 RACES = {
     0x01: 'human',
@@ -38,6 +78,8 @@ RACES = {
     0x20: 'random',
     0x40: 'selectable/fixed',
     }
+
+SPEED = ('slow', 'normal', 'fast', 'unused')
 
 class Player(namedtuple('Player', ['id', 'name', 'race', 'ishost', 
                                    'runtime', 'raw', 'size'])):
@@ -160,7 +202,12 @@ class File(object):
         self.game_name, i = nulltermstr(data[offset:])
         offset += i + 1
         offset += 1  # extra null byte after game name
-        print(self.game_name)
+        # get game settings
+        settings, i = blizdecomp(data[offset:])
+        offset += i + 1
+        self.game_speed = SPEED[bitfield(settings[0], slice(2))]
+        print(self.game_speed)
+        import pdb; pdb.set_trace()
         
 
 if __name__ == '__main__':
