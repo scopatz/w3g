@@ -92,6 +92,13 @@ STATUS = {0x00: 'empty', 0x01: 'closed', 0x02: 'used'}
 COLORS = ('red', 'blue', 'cyan', 'purple', 'yellow', 'orange', 'green',
           'pink', 'gray', 'light blue', 'dark green', 'brown', 'observer')
 AI_STRENGTH = {0x00: 'easy', 0x01: 'normal', 0x02: 'insane'}
+SELECT_MODES = {
+    0x00: 'team & race selectable',
+    0x01: 'team not selectable',
+    0x03: 'team & race not selectable',
+    0x04: 'race fixed to random',
+    0xcc: 'automated match making',
+    }
 
 class Player(namedtuple('Player', ['id', 'name', 'race', 'ishost', 
                                    'runtime', 'raw', 'size'])):
@@ -291,9 +298,12 @@ class File(object):
         offset += recsize*nrecs
         self.slot_records = [SlotRecord.from_raw(rawrecs[n*recsize:(n+1)*recsize]) \
                              for n in range(nrecs)]
-        print(self.slot_records)
         self.random_seed = data[offset:offset+DWORD]
         offset += DWORD
+        self.select_mode = SELECT_MODES[b2i(data[offset])]
+        offset += 1
+        self.num_start_positions = b2i(data[offset])
+        offset += 1
 
 if __name__ == '__main__':
     f = File(sys.argv[1])
