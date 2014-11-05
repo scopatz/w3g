@@ -80,6 +80,8 @@ RACES = {
     }
 
 SPEED = ('slow', 'normal', 'fast', 'unused')
+OBSERVER = ('off', 'unused', 'defeat', 'on')
+FIXED_TEAMS = ('off', 'unused', 'unused', 'on')
 
 class Player(namedtuple('Player', ['id', 'name', 'race', 'ishost', 
                                    'runtime', 'raw', 'size'])):
@@ -202,12 +204,29 @@ class File(object):
         self.game_name, i = nulltermstr(data[offset:])
         offset += i + 1
         offset += 1  # extra null byte after game name
-        # get game settings
-        settings, i = blizdecomp(data[offset:])
+        # perform wacky decompression
+        decomp, i = blizdecomp(data[offset:])
         offset += i + 1
+        # get game settings
+        settings = decomp[:13]
         self.game_speed = SPEED[bitfield(settings[0], slice(2))]
-        print(self.game_speed)
-        import pdb; pdb.set_trace()
+        vis = bits(settings[1])
+        self.visibility_hide_terrain = bool(vis[0])
+        self.visibility_map_explored = bool(vis[1])
+        self.visibility_always_visible = bool(vis[2])
+        self.visibility_default = bool(vis[3])
+        self.observer = OBSERVER[vis[4] + 2 * vis[5]]
+        self.teams_together = bool(vis[6])
+        self.fixed_teams = FIXED_TEAMS[bitfield(settings[2], slice(1, 3))]
+        ctl = bits(settings[3])
+        self.full_shared_unit_control = bool(ctl[0])
+        self.random_hero = bool(ctl[1])
+        self.random_races = bool(ctl[2])
+        self.observer_referees = bool(ctl[6])
+        self.map_name, i = nulltermstr(decomp[13:])
+        self.creator_name, _ = nulltermstr(decomp[13+i+1:])
+        print(self.map_name)
+        print(self.creator_name)
         
 
 if __name__ == '__main__':
