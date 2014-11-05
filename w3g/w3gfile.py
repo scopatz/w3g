@@ -78,10 +78,16 @@ RACES = {
     0x20: 'random',
     0x40: 'selectable/fixed',
     }
-
 SPEED = ('slow', 'normal', 'fast', 'unused')
 OBSERVER = ('off', 'unused', 'defeat', 'on')
 FIXED_TEAMS = ('off', 'unused', 'unused', 'on')
+GAME_TYPES = {
+    0x00: 'unknown',
+    0x01: '1on1',
+    0x09: 'custom',
+    0x1D: 'single player game',
+    0x20: 'ladder team game',
+    }
 
 class Player(namedtuple('Player', ['id', 'name', 'race', 'ishost', 
                                    'runtime', 'raw', 'size'])):
@@ -225,9 +231,22 @@ class File(object):
         self.observer_referees = bool(ctl[6])
         self.map_name, i = nulltermstr(decomp[13:])
         self.creator_name, _ = nulltermstr(decomp[13+i+1:])
-        print(self.map_name)
-        print(self.creator_name)
-        
+        # back to less dense data
+        self.player_count = b2i(data[offset:offset+4])
+        offset += 4
+        self.game_type = GAME_TYPES[b2i(data[offset])]
+        offset += 1
+        priv = b2i(data[offset])
+        offset += 1
+        self.ispublic = (priv == 0x00)
+        self.isprivate = (priv == 0x08)
+        offset += WORD  # more buffer space
+        self.language_id = data[offset:offset+4]
+        offset += 4
+        while b2i(data[offset]) == 0x16:
+            self.players.append(Player.from_raw(data[offset:]))
+            offset += self.players[-1].size
+        print(self.players)
 
 if __name__ == '__main__':
     f = File(sys.argv[1])
