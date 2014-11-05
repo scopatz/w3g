@@ -88,6 +88,10 @@ GAME_TYPES = {
     0x1D: 'single player game',
     0x20: 'ladder team game',
     }
+STATUS = {0x00: 'empty', 0x01: 'closed', 0x02: 'used'}
+COLORS = ('red', 'blue', 'cyan', 'purple', 'yellow', 'orange', 'green',
+          'pink', 'gray', 'light blue', 'dark green', 'brown', 'observer')
+AI_STRENGTH = {0x00: 'easy', 0x01: 'normal', 0x02: 'insane'}
 
 class Player(namedtuple('Player', ['id', 'name', 'race', 'ishost', 
                                    'runtime', 'raw', 'size'])):
@@ -120,6 +124,34 @@ class Player(namedtuple('Player', ['id', 'name', 'race', 'ishost',
             raise ValueError("Player not recognized custom or ladder.")
         kw['size'] = n
         kw['raw'] = data[:n]
+        return cls(**kw)
+
+class SlotRecord(namedtuple('Player', ['player_id', 'status', 'ishuman', 'team', 
+                                       'color', 'race', 'ai', 'handicap','raw', 
+                                       'size'])):
+    def __new__(cls, player_id=-1, status='empty', ishuman=False, team=-1, color='red', 
+                race='none', ai='normal', handicap=100, raw=b'', size=0):
+        self = super(SlotRecord, cls).__new__(cls, player_id=player_id, status=status, 
+                                              ishuman=ishuman, team=team, color=color,
+                                              race=race, ai=ai, handicap=handicap,  
+                                              raw=raw, size=size)
+        return self
+
+    @classmethod
+    def from_raw(cls, data):
+        kw = {'player_id': b2i(data[0]), 
+              'status': STATUS[b2i(data[2])],
+              'ishuman': (b2i(data[3]) == 0x00),
+              'team': b2i(data[4]),
+              'color': COLORS[b2i(data[5])],
+              'race': RACES.get(b2i(data[6]), 'none'),
+              }
+        kw['size'] = size = len(data)
+        kw['raw'] = data
+        if 8 <= size:
+            kw['ai'] = AI_STRENGTH[b2i(data[7])]
+        if 9 <= size:
+            kw['handicap'] = b2i(data[8])
         return cls(**kw)
 
 class File(object):
@@ -246,7 +278,22 @@ class File(object):
         while b2i(data[offset]) == 0x16:
             self.players.append(Player.from_raw(data[offset:]))
             offset += self.players[-1].size
-        print(self.players)
+            offset += 4  # 4 unknown padding bytes after each player record
+        assert b2i(data[offset]) == 0x19
+        offset += 1  # skip RecordID
+        nstartbytes = b2i(data[offset:offset+WORD])
+        offset += WORD
+        nrecs = b2i(data[offset])
+        offset += 1
+        recsize = int((nstartbytes - DWORD - 3) / nrecs)
+        assert 7 <= recsize <= 9
+        rawrecs = data[offset:offset+(recsize*nrecs)]
+        offset += recsize*nrecs
+        self.slot_records = [SlotRecord.from_raw(rawrecs[n*recsize:(n+1)*recsize]) \
+                             for n in range(nrecs)]
+        print(self.slot_records)
+        self.random_seed = data[offset:offset+DWORD]
+        offset += DWORD
 
 if __name__ == '__main__':
     f = File(sys.argv[1])
