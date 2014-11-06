@@ -231,16 +231,38 @@ class File(object):
     def _read_blocks(self):
         f = self.f
         self.loc = self.header_size
-        block_size = b2i(f.read(WORD))
-        block_size_decomp = b2i(f.read(WORD))
-        self.loc += DWORD
-        raw = f.read(block_size)
-        data = zlib.decompress(raw)
-        if len(data) != block_size_decomp:
-            raise zlib.error("Decompressed data size does not match expected size.")
-        if not self.have_startup:
-            self._parse_startup(data)
-            self.have_startup = True
+        data = b''
+        for n in range(self.nblocks):
+            block_size = b2i(f.read(WORD))
+            block_size_decomp = b2i(f.read(WORD))
+            self.loc += DWORD
+            raw = f.read(block_size)
+            dat = zlib.decompress(raw)
+            if len(dat) != block_size_decomp:
+                raise zlib.error("Decompressed data size does not match expected size.")
+            data += dat
+        self._parse_blocks(data)
+
+    def _parse_blocks(self, data):
+        self._parsers = {
+            0x17: self._parse_leave_game,
+            0x1A: lambda data: 5,
+            0x1B: lambda data: 5,
+            0x1C: lambda data: 5,
+            0x1E: self._parse_time_slot,  # old blockid
+            0x1F: self._parse_time_slot,  # new blockid
+            0x20: self._parse_chat,
+            0x22: lambda data: 6,
+            0x23: lambda data: 11,
+            0x2F: self._parse_countdown,
+            }
+        offset = self._parse_startup(data)
+        data = data[offset:]
+        blockid = b2i(data[0])
+        while blockid != 0:
+            offset = self._parsers[blockid](data)
+            data = data[offset:]
+            blockid = b2i(data[0])
 
     def _parse_startup(self, data):
         offset = 4  # first four bytes have unknown meaning
@@ -304,6 +326,22 @@ class File(object):
         offset += 1
         self.num_start_positions = b2i(data[offset])
         offset += 1
+        return offset
+
+    def _parse_leave_game(self, data):
+        return 14
+
+    def _parse_time_slot(self, data):
+        n = b2i(data[1:1+WORD])
+        return n + 3
+
+    def _parse_chat(self, data):
+        player_id = b2i(data[1])
+        n = b2i(data[2:2+WORD])
+        return n + 4
+
+    def _parse_countdown(self, data):
+        return 9
 
 if __name__ == '__main__':
     f = File(sys.argv[1])
