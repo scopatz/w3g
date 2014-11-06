@@ -388,6 +388,10 @@ class File(object):
 
     def _parse_time_slot(self, data):
         n = b2i(data[1:1+WORD])
+        offset = 1 + WORD
+        dt = b2i(data[offset:offset+WORD])
+        offset += WORD
+        self._clock += dt
         return n + 3
 
     def _parse_chat(self, data):
