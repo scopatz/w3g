@@ -273,6 +273,18 @@ class LeftGame(Event):
             r = 'left'
         return r
 
+class Countdown(Event):
+
+    def __init__(self, f, mode, secs):
+        super(Countdown, self).__init__(f)
+        self.mode = mode
+        self.secs = secs
+
+    def __str__(self):
+        t = self.strtime()
+        rtn = "[{t}] Game countdown {mode}, {m:02}:{s:02} left"
+        return rtn.format(t=t, mode=self.mode, m=int(self.secs/60), s=self.secs%60)
+
 class File(object):
     """A class that represents w3g files.
 
@@ -498,6 +510,14 @@ class File(object):
         return n + 4
 
     def _parse_countdown(self, data):
+        offset = 1
+        m = b2i(data[offset:offset+DWORD])
+        offset += DWORD
+        mode = 'running' if m == 0x00 else 'over'
+        secs = b2i(data[offset:offset+DWORD])
+        offset += DWORD
+        e = Countdown(self, mode, secs)
+        self.events.append(e)
         return 9
 
     def _player(self, pid):
