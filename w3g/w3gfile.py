@@ -488,6 +488,12 @@ class File(object):
         offset = 1 + WORD
         dt = b2i(data[offset:offset+WORD])
         offset += WORD
+        cmddata = data[offset:n+3]
+        while len(cmddata) > 0:
+            player_id = b2i(cmddata[0])
+            i = b2i(cmddata[1:1+WORD])
+            action_block = cmddata[1+WORD:i+1+WORD]
+            cmddata = cmddata[i+1+WORD:]
         self._clock += dt
         return n + 3
 
