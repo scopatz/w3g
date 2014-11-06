@@ -99,6 +99,7 @@ SELECT_MODES = {
     0x04: 'race fixed to random',
     0xcc: 'automated match making',
     }
+CHAT_MODES = {0x00: 'all', 0x01: 'allies', 0x02: 'observers'}
 
 class Player(namedtuple('Player', ['id', 'name', 'race', 'ishost', 
                                    'runtime', 'raw', 'size'])):
@@ -338,6 +339,18 @@ class File(object):
     def _parse_chat(self, data):
         player_id = b2i(data[1])
         n = b2i(data[2:2+WORD])
+        offset = 2 + WORD
+        flags = b2i(data[offset])
+        offset += 1
+        if flags == 0x10:
+            mode = 'startup'
+        else:
+            m = b2i(data[offset:offset+DWORD])
+            offset += DWORD
+            mode = CHAT_MODES.get(m, None)
+            if mode is None:
+                mode = 'player{0}'.format(m - 0x3)
+        msg, _ = nulltermstr(data[offset:])
         return n + 4
 
     def _parse_countdown(self, data):
