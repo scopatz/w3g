@@ -205,7 +205,7 @@ class Chat(Event):
         t = self.strtime()
         p = self.f.player_name(self.player_id)
         m = self.strmode()
-        return "<{m}> [{t}] {p}: {msg}".format(t=t, p=p, m=m, msg=self.msg)
+        return "[{t}] <{m}> {p}: {msg}".format(t=t, p=p, m=m, msg=self.msg)
 
     def strmode(self):
         mode = self.mode
@@ -214,6 +214,64 @@ class Chat(Event):
         pid = int(mode[6:])
         return self.f.player_name(pid)
 
+class LeftGame(Event):
+
+    remote_results = {
+        0x01: 'left',
+        0x07: 'left',
+        0x08: 'lost',
+        0x09: 'won',
+        0x0A: 'draw',
+        0x0B: 'left',
+        }
+
+    local_not_last_results = {
+        0x01: 'disconnected',
+        0x07: 'lost',
+        0x08: 'lost',
+        0x09: 'won',
+        0x0A: 'draw',
+        0x0B: 'lost',
+        }
+
+    local_last_results = {
+        0x01: 'disconnected',
+        0x08: 'lost',
+        0x09: 'won',
+        }
+
+    def __init__(self, f, player_id, closedby, resultflag, inc, unknownflag):
+        super(LeftGame, self).__init__(f)
+        self.player_id = player_id
+        self.closedby = closedby
+        self.resultflag = resultflag
+        self.inc = inc
+        self.unknownflag = unknownflag
+        self.next = None
+
+    def __str__(self):
+        t = self.strtime()
+        p = self.f.player_name(self.player_id)
+        r = self.result()
+        rtn = "[{t}] <{cb}> {p} left game, {r}"
+        return rtn.format(t=t, p=p, cb=self.closedby, r=r)
+
+    def result(self):
+        cb = self.closedby
+        res = self.resultflag
+        if cb == 'remote':
+            r = self.remote_results[res]
+        elif cb == 'local':
+            if self.next is None:
+                if res == 0x07 or res == 0x0B:
+                    r = 'won' if self.inc else 'lost'
+                else:
+                    r = self.local_last_results[res]
+            else:
+                r = self.local_not_last_results[res]
+        else:
+            r = 'left'
+        return r
 
 class File(object):
     """A class that represents w3g files.
@@ -299,6 +357,7 @@ class File(object):
     def _parse_blocks(self, data):
         self.events = []
         self._clock = 0
+        self._lastleft = None
         _parsers = {
             0x17: self._parse_leave_game,
             0x1A: lambda data: 5,
@@ -384,6 +443,32 @@ class File(object):
         return offset
 
     def _parse_leave_game(self, data):
+        offset = 1
+        reason = b2i(data[offset:offset+DWORD])
+        offset += DWORD
+        player_id = b2i(data[offset])
+        offset += 1
+        res = b2i(data[offset:offset+DWORD])
+        offset += DWORD
+        unknownflag = b2i(data[offset:offset+DWORD])
+        offset += DWORD
+        # compute inc
+        if self._lastleft is None:
+            inc = False
+        else:
+            inc = (unknownflag == (self._lastleft.unknownflag + 1))
+        # compute closedby and reult
+        if reason == 0x01:
+            closedby = 'remote'
+        elif reason == 0x0C:
+            closedby = 'local'
+        else: 
+            closedby = 'unknown'
+        e = LeftGame(self, player_id, closedby, res, inc, unknownflag)
+        self.events.append(e)
+        if self._lastleft is not None:
+            self._lastleft.next = e
+        self._lastleft = e
         return 14
 
     def _parse_time_slot(self, data):
