@@ -17,6 +17,17 @@ if sys.version_info[0] < 3:
     import struct
     BLENFLAG = {1: 'B', WORD: 'H', DWORD: 'L'}
     b2i = lambda b: struct.unpack('<' + BLENFLAG[len(b)], b)[0]
+
+    # to print unicode
+    import codecs
+    UTF8Writer = codecs.getwriter('utf8')
+    sys.stdout = UTF8Writer(sys.stdout)
+    def umake(f):
+        def uprint(*objects, **kw):
+            uo = map(unicode, objects)
+            f(*uo, **kw)
+        return uprint
+    print = umake(print)
 else:
     b2i = lambda b: b if isinstance(b, int) else int.from_bytes(b, 'little')
 
@@ -162,6 +173,48 @@ class SlotRecord(namedtuple('Player', ['player_id', 'status', 'ishuman', 'team',
             kw['handicap'] = b2i(data[8])
         return cls(**kw)
 
+class Event(object):
+    """An event base class."""
+
+    def __init__(self, f):
+        self.f = f
+        self.time = f._clock
+
+    def strtime(self):
+        secs = self.time / 1000.0
+        s = secs % 60
+        m = int(secs / 60) % 60
+        h = int(secs / 3600)
+        rtn = []
+        if h > 0: 
+            rtn.append("{0:02}".format(h))
+        if m > 0: 
+            rtn.append("{0:02}".format(m))
+        rtn.append("{0:06.3f}".format(s))
+        return ":".join(rtn)
+
+class Chat(Event):
+
+    def __init__(self, f, player_id, mode, msg):
+        super(Chat, self).__init__(f)
+        self.player_id = player_id
+        self.mode = mode
+        self.msg = msg
+
+    def __str__(self):
+        t = self.strtime()
+        p = self.f.player_name(self.player_id)
+        m = self.strmode()
+        return "<{m}> [{t}] {p}: {msg}".format(t=t, p=p, m=m, msg=self.msg)
+
+    def strmode(self):
+        mode = self.mode
+        if not mode.startswith('player'):
+            return mode
+        pid = int(mode[6:])
+        return self.f.player_name(pid)
+
+
 class File(object):
     """A class that represents w3g files.
 
@@ -182,7 +235,6 @@ class File(object):
             f = io.open(f, 'rb')
         self.f = f
         self.loc = 0
-        self.have_startup = False
 
         # read in
         self._read_header()
@@ -245,7 +297,9 @@ class File(object):
         self._parse_blocks(data)
 
     def _parse_blocks(self, data):
-        self._parsers = {
+        self.events = []
+        self._clock = 0
+        _parsers = {
             0x17: self._parse_leave_game,
             0x1A: lambda data: 5,
             0x1B: lambda data: 5,
@@ -261,7 +315,7 @@ class File(object):
         data = data[offset:]
         blockid = b2i(data[0])
         while blockid != 0:
-            offset = self._parsers[blockid](data)
+            offset = _parsers[blockid](data)
             data = data[offset:]
             blockid = b2i(data[0])
 
@@ -351,11 +405,33 @@ class File(object):
             if mode is None:
                 mode = 'player{0}'.format(m - 0x3)
         msg, _ = nulltermstr(data[offset:])
+        self.events.append(Chat(self, player_id, mode, msg))
         return n + 4
 
     def _parse_countdown(self, data):
         return 9
 
+    def _player(self, pid):
+        players = self.players
+        if pid < len(players):
+            p = players[pid]
+            if p.id == pid:
+                return p
+        for p in players:
+            if p.id == pid:
+                break
+        else:
+            p = self.slot_records[pid]
+        return p
+
+    def player_name(self, pid):
+        p = self._player(pid)
+        if isinstance(p, SlotRecord):
+            return 'observer'
+        return p.name
+
 if __name__ == '__main__':
     f = File(sys.argv[1])
+    for event in f.events:
+        print(event)
 
