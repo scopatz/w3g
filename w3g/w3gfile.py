@@ -493,6 +493,7 @@ class File(object):
             player_id = b2i(cmddata[0])
             i = b2i(cmddata[1:1+WORD])
             action_block = cmddata[1+WORD:i+1+WORD]
+            self._parse_actions(player_id, action_block)
             cmddata = cmddata[i+1+WORD:]
         self._clock += dt
         return n + 3
