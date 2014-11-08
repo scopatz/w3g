@@ -294,13 +294,37 @@ class Action(Event):
     id = -1
     size = 1
 
-    def __init__(self, f, player_id, mode, msg):
+    def __init__(self, f, player_id, action_block):
         super(Action, self).__init__(f)
         self.player_id = player_id
+
+    def __str__(self):
+        t = self.strtime()
+        p = self.f.player_name(self.player_id)
+        rtn = "[{t}] <{c}> {p}"
+        return rtn.format(t=t, c=self.__class__.__name__, p=p)
 
 class Pause(Action):
 
     id = 0x01
+
+    def __init__(self, f, player_id, action_block):
+        super(Pause, self).__init__(f, player_id, action_block)
+
+class Resume(Action):
+
+    id = 0x02
+
+    def __init__(self, f, player_id, action_block):
+        super(Resume, self).__init__(f, player_id, action_block)
+
+class AbilityPositionObject(Action):
+
+    id = 0x12
+    size = 30
+
+    def __init__(self, f, player_id, action_block):
+        super(AbilityPositionObject, self).__init__(f, player_id, action_block)
 
 # has to come after the action classes 
 ACTIONS = {a.id: a for a in locals().values() if hasattr(a, 'id') and \
@@ -549,15 +573,14 @@ class File(object):
         return 9
 
     def _parse_actions(self, player_id, action_block):
-        aid = b2i(action_block[0])
-        while aid > 0 and len(action_block) > 0:
+        while len(action_block) > 0:
+            aid = b2i(action_block[0])
             action = ACTIONS.get(aid, None)
             if action is None:
                 return 
-            e = action(player_id, action_block)
+            e = action(self, player_id, action_block)
             self.events.append(e)
             action_block = action_block[e.size:]
-            aid = b2i(action_block[0]) if len(action_block) > 0 else -1
 
     @lru_cache(13)
     def player(self, pid):
@@ -584,4 +607,5 @@ if __name__ == '__main__':
     f = File(sys.argv[1])
     for event in f.events:
         print(event)
-
+    print(f.version_num)
+    print(f.build_num)
