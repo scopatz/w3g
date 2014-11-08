@@ -302,9 +302,9 @@ class Pause(Action):
 
     id = 0x01
 
+# has to come after the action classes 
 ACTIONS = {a.id: a for a in locals().values() if hasattr(a, 'id') and \
                              isinstance(a.id, int) and a is not Action}
-print(ACTIONS)
 
 class File(object):
     """A class that represents w3g files.
@@ -547,6 +547,17 @@ class File(object):
         e = Countdown(self, mode, secs)
         self.events.append(e)
         return 9
+
+    def _parse_actions(self, player_id, action_block):
+        aid = b2i(action_block[0])
+        while aid > 0 and len(action_block) > 0:
+            action = ACTIONS.get(aid, None)
+            if action is None:
+                return 
+            e = action(player_id, action_block)
+            self.events.append(e)
+            action_block = action_block[e.size:]
+            aid = b2i(action_block[0]) if len(action_block) > 0 else -1
 
     @lru_cache(13)
     def player(self, pid):
