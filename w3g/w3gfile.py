@@ -28,8 +28,12 @@ if sys.version_info[0] < 3:
             f(*uo, **kw)
         return uprint
     print = umake(print)
+
+    # fake lru_cache
+    lru_cache = lambda maxsize=128, typed=False: lambda f: f
 else:
     b2i = lambda b: b if isinstance(b, int) else int.from_bytes(b, 'little')
+    from functools import lru_cache
 
 def nulltermstr(b):
     """Returns the next null terminated string from bytes and its length."""
@@ -285,6 +289,23 @@ class Countdown(Event):
         rtn = "[{t}] Game countdown {mode}, {m:02}:{s:02} left"
         return rtn.format(t=t, mode=self.mode, m=int(self.secs/60), s=self.secs%60)
 
+class Action(Event):
+
+    id = -1
+    size = 1
+
+    def __init__(self, f, player_id, mode, msg):
+        super(Action, self).__init__(f)
+        self.player_id = player_id
+
+class Pause(Action):
+
+    id = 0x01
+
+ACTIONS = {a.id: a for a in locals().values() if hasattr(a, 'id') and \
+                             isinstance(a.id, int) and a is not Action}
+print(ACTIONS)
+
 class File(object):
     """A class that represents w3g files.
 
@@ -527,7 +548,8 @@ class File(object):
         self.events.append(e)
         return 9
 
-    def _player(self, pid):
+    @lru_cache(13)
+    def player(self, pid):
         players = self.players
         if pid < len(players):
             p = players[pid]
@@ -540,8 +562,9 @@ class File(object):
             p = self.slot_records[pid]
         return p
 
+    @lru_cache(13)
     def player_name(self, pid):
-        p = self._player(pid)
+        p = self.player(pid)
         if isinstance(p, SlotRecord):
             return 'observer'
         return p.name
