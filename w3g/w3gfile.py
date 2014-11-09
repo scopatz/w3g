@@ -13,6 +13,12 @@ WORD = 2   # bytes
 DWORD = 4  # bytes, double word
 NULL = b'\0'
 
+# build number associated with v1.07 of the game
+BUILD_1_07 = 6031
+
+# build number associated with v1.13 of the game
+BUILD_1_13 = 6037
+
 if sys.version_info[0] < 3:
     import struct
     BLENFLAG = {1: 'B', WORD: 'H', DWORD: 'L'}
@@ -367,6 +373,26 @@ class SaveGameFinished(Action):
     def __init__(self, f, player_id, action_block):
         super(SaveGameFinished, self).__init__(f, player_id, action_block)
 
+class Ability(Action):
+
+    id = 0x10
+
+    def __init__(self, f, player_id, action_block):
+        super(Ability, self).__init__(f, player_id, action_block)
+        offset = 1
+        o = 1 if f.build_num < BUILD_1_13 else WORD
+        self.flags = b2i(action_block[offset:offset+o])
+        offset += o
+        #self.item = b2i(action_block[offset:offset+DWORD])
+        self.item = action_block[offset:offset+DWORD]
+        offset += DWORD
+        offset += 2 * DWORD if f.build_num >= BUILD_1_07 else 0
+        self.size = self.offset = offset
+
+    def __str__(self):
+        s = super(Ability, self).__str__()
+        return '{0} - {1}'.format(s, self.item)
+
 class AbilityPositionObject(Action):
 
     id = 0x12
@@ -377,7 +403,7 @@ class AbilityPositionObject(Action):
 
 # has to come after the action classes 
 ACTIONS = {a.id: a for a in locals().values() if hasattr(a, 'id') and \
-                             isinstance(a.id, int) and a is not Action}
+                                    isinstance(a.id, int) and a.id > 0}
 
 class File(object):
     """A class that represents w3g files.
@@ -656,5 +682,5 @@ if __name__ == '__main__':
     f = File(sys.argv[1])
     for event in f.events:
         print(event)
-    #print(f.version_num)
-    #print(f.build_num)
+    print(f.version_num)
+    print(f.build_num)
