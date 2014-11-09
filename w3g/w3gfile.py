@@ -93,7 +93,7 @@ RACES = {
     0x20: 'random',
     0x40: 'selectable/fixed',
     }
-SPEED = ('slow', 'normal', 'fast', 'unused')
+SPEEDS = ('slow', 'normal', 'fast', 'unused')
 OBSERVER = ('off', 'unused', 'defeat', 'on')
 FIXED_TEAMS = ('off', 'unused', 'unused', 'on')
 GAME_TYPES = {
@@ -318,6 +318,55 @@ class Resume(Action):
     def __init__(self, f, player_id, action_block):
         super(Resume, self).__init__(f, player_id, action_block)
 
+class SetGameSpeed(Action):
+
+    id = 0x03
+    size = 2
+
+    def __init__(self, f, player_id, action_block):
+        super(SetGameSpeed, self).__init__(f, player_id, action_block)
+        self.speed = b2i(action_block[1])
+
+    def __str__(self):
+        s = super(SetGameSpeed, self).__str__()
+        return '{0} - {1}'.format(s, SPEEDS[self.speed])
+
+class IncreaseGameSpeed(Action):
+
+    id = 0x04
+
+    def __init__(self, f, player_id, action_block):
+        super(IncreaseGameSpeed, self).__init__(f, player_id, action_block)
+
+class DecreaseGameSpeed(Action):
+
+    id = 0x05
+
+    def __init__(self, f, player_id, action_block):
+        super(DecreaseGameSpeed, self).__init__(f, player_id, action_block)
+
+class SaveGame(Action):
+
+    id = 0x06
+    size = None
+
+    def __init__(self, f, player_id, action_block):
+        super(SaveGame, self).__init__(f, player_id, action_block)
+        self.name, n = nulltermstr(action_block[1:])
+        self.size = 1 + n + 1
+
+    def __str__(self):
+        s = super(SaveGame, self).__str__()
+        return '{0} - {1}'.format(s, self.name)
+
+class SaveGameFinished(Action):
+
+    id = 0x07
+    size = 5
+
+    def __init__(self, f, player_id, action_block):
+        super(SaveGameFinished, self).__init__(f, player_id, action_block)
+
 class AbilityPositionObject(Action):
 
     id = 0x12
@@ -447,7 +496,7 @@ class File(object):
         offset += i + 1
         # get game settings
         settings = decomp[:13]
-        self.game_speed = SPEED[bitfield(settings[0], slice(2))]
+        self.game_speed = SPEEDS[bitfield(settings[0], slice(2))]
         vis = bits(settings[1])
         self.visibility_hide_terrain = bool(vis[0])
         self.visibility_map_explored = bool(vis[1])
@@ -607,5 +656,5 @@ if __name__ == '__main__':
     f = File(sys.argv[1])
     for event in f.events:
         print(event)
-    print(f.version_num)
-    print(f.build_num)
+    #print(f.version_num)
+    #print(f.build_num)
