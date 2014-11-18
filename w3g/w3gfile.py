@@ -830,6 +830,15 @@ ITEMS = {
     b'dphe': 'Thunder Phoenix Egg',
     b'dkfw': 'Keg of Thunderwater',
     b'dthb': 'Thunderbloom Bulb',
+    # extra heros
+    b'Npbm': 'Pandaren Brewmaster',
+    b'Nbrn': 'Dark Ranger',
+    b'Nngs': 'Naga Sea Witch',
+    b'Nplh': 'Pit Lord',
+    b'Nbst': 'Beastmaster',
+    b'Ntin': 'Goblin Tinker',
+    b'Nfir': 'FireLord',
+    b'Nalc': 'Goblin Alchemist',
     # numeric item id
     b'\x03\x00\x0D\x00': 'Rightclick',
     b'\x04\x00\x0D\x00': 'Stop',
