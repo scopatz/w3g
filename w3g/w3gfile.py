@@ -12,6 +12,7 @@ from collections import namedtuple
 WORD = 2   # bytes
 DWORD = 4  # bytes, double word
 NULL = b'\0'
+MAXPOS = 2.0**32
 
 # build number associated with v1.07 of the game
 BUILD_1_07 = 6031
@@ -1231,6 +1232,7 @@ ITEMS = {
     b'\xBE\x02\x0D\x00': 'Incinerate (Fire Lord)',
     b'\xBF\x02\x0D\x00': 'Enable autocast: Incinerate (Fire Lord)',
     b'\xC0\x02\x0D\x00': 'Disable autocast: Incinerate (Fire Lord)',
+    b'\xFF\xFF\xFF\xFF': 'No object',
 }
 ABILITY_FLAGS = {
     0x0001: 'queue command',
@@ -1509,13 +1511,31 @@ class Ability(Action):
             self.item = item[::-1]
         offset += DWORD
         offset += 2 * DWORD if f.build_num >= BUILD_1_07 else 0
-        self.size = self.offset = offset
+        self.size = offset
 
     def __str__(self):
         s = super(Ability, self).__str__()
         aflgs = ABILITY_FLAGS.get(self.flags, None)
         astr = '' if aflgs is None else ' [{0}]'.format(aflgs)
         return '{0} - {1}{2}'.format(s, ITEMS.get(self.item, self.item), astr) 
+
+class AbilityPosition(Ability):
+
+    id = 0x11
+
+    def __init__(self, f, player_id, action_block):
+        super(AbilityPosition, self).__init__(f, player_id, action_block)
+        offset = self.size
+        x = b2i(action_block[offset:offset+DWORD])
+        offset += DWORD
+        y = b2i(action_block[offset:offset+DWORD])
+        offset += DWORD
+        self.loc = (x, y)
+        self.size = offset
+
+    def __str__(self):
+        s = super(AbilityPosition, self).__str__()
+        return '{0} at ({1:.3%}, {2:.3%})'.format(s, self.loc[0]/MAXPOS, self.loc[1]/MAXPOS) 
 
 class AbilityPositionObject(Action):
 
