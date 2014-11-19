@@ -1232,6 +1232,16 @@ ITEMS = {
     b'\xBF\x02\x0D\x00': 'Enable autocast: Incinerate (Fire Lord)',
     b'\xC0\x02\x0D\x00': 'Disable autocast: Incinerate (Fire Lord)',
 }
+ABILITY_FLAGS = {
+    0x0001: 'queue command',
+    0x0002: 'apply to all units in subgroup',
+    0x0004: 'area effect',
+    0x0008: 'group command',
+    0x0010: 'move group without formation',
+    0x0020: None,
+    0x0040: 'subgroup command',
+    0x0100: 'autocast enabled/disabled',
+}
 
 class Player(namedtuple('Player', ['id', 'name', 'race', 'ishost', 
                                    'runtime', 'raw', 'size'])):
@@ -1503,7 +1513,9 @@ class Ability(Action):
 
     def __str__(self):
         s = super(Ability, self).__str__()
-        return '{0} - {1}'.format(s, ITEMS.get(self.item, self.item))
+        aflgs = ABILITY_FLAGS.get(self.flags, None)
+        astr = '' if aflgs is None else ' [{0}]'.format(aflgs)
+        return '{0} - {1}{2}'.format(s, ITEMS.get(self.item, self.item), astr) 
 
 class AbilityPositionObject(Action):
 
