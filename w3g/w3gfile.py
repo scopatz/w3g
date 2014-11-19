@@ -1535,15 +1535,21 @@ class AbilityPosition(Ability):
 
     def __str__(self):
         s = super(AbilityPosition, self).__str__()
-        return '{0} at ({1:.3%}, {2:.3%})'.format(s, self.loc[0]/MAXPOS, self.loc[1]/MAXPOS) 
+        return '{0} at ({1:.3%}, {2:.3%})'.format(s, self.loc[0]/MAXPOS, 
+                                                     self.loc[1]/MAXPOS) 
 
-class AbilityPositionObject(Action):
+class AbilityPositionObject(AbilityPosition):
 
     id = 0x12
-    size = 30
 
     def __init__(self, f, player_id, action_block):
         super(AbilityPositionObject, self).__init__(f, player_id, action_block)
+        offset = self.size
+        self.object1 = action_block[offset:offset+DWORD]
+        offset += DWORD
+        self.object2 = action_block[offset:offset+DWORD]
+        offset += DWORD
+        self.size = offset
 
 # has to come after the action classes 
 ACTIONS = {a.id: a for a in locals().values() if hasattr(a, 'id') and \
