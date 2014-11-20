@@ -1437,6 +1437,11 @@ class Action(Event):
         rtn = "[{t}] <{c}> {p}"
         return rtn.format(t=t, c=self.__class__.__name__, p=p)
 
+    def obj(self, o):
+        if o == b'\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF': 
+            return 'Ground'
+        return 'Object#{0}'.format(b2i(o))
+
 class Pause(Action):
 
     id = 0x01
@@ -1553,11 +1558,6 @@ class AbilityPositionObject(AbilityPosition):
         offset += 2*DWORD
         self.size = offset
 
-    def obj(self, o):
-        if o == b'\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF': 
-            return 'Ground'
-        return 'Object#{0}'.format(b2i(o))
-
     def _super_str(self):
         return super(AbilityPositionObject, self).__str__()
 
@@ -1610,6 +1610,25 @@ class DoubleAbility(AbilityPosition):
                                                       self.loc2[1]/MAXPOS) 
         return '{0} -> {1}{2}'.format(s, ITEMS.get(self.ability2, self.ability2), 
                                       loc2str)
+
+class ChangeSelection(Action):
+
+    id = 0x16
+
+    modes = {0x01: 'Select', 0x02: 'Deselect'}
+
+    def __init__(self, f, player_id, action_block):
+        super(ChangeSelection, self).__init__(f, player_id, action_block)
+        self.mode = b2i(action_block[1])
+        n = b2i(action_block[2:2+WORD])
+        self.size = 4 + 8*n
+        objs = action_block[4:]
+        self.objects = [objs[i:i+8] for i in range(n)]
+
+    def __str__(self):
+        s = super(ChangeSelection, self).__str__()
+        return '{0} {1} [{2}]'.format(s, self.modes[self.mode], 
+                                      ', '.join(map(self.obj, self.objects)))
 
 # has to come after the action classes 
 ACTIONS = {a.id: a for a in locals().values() if hasattr(a, 'id') and \
