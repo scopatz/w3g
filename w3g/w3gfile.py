@@ -592,6 +592,10 @@ ITEMS = {
     b'nndk': 'Nether Drake',
     b'nndr': 'Nether Dragon',
     # real items
+    b'LTlt': 'Tree',
+    b'nmer': 'Merchant',
+    b'ntav': 'Tavern',
+    b'ngol': 'Goldmine',
     b'amrc': 'Amulet of Recall',
     b'ankh': 'Ankh of Reincarnation',
     b'belv': 'Boots of Quel\'Thalas +6',
@@ -1576,6 +1580,36 @@ class GiveItem(AbilityPositionObject):
         s = super(GiveItem, self)._super_str()
         return '{0} {1} -> {2}'.format(s, self.obj(self.item), 
                                           self.obj(self.object))
+
+class DoubleAbility(AbilityPosition):
+
+    id = 0x14
+
+    def __init__(self, f, player_id, action_block):
+        super(DoubleAbility, self).__init__(f, player_id, action_block)
+        self.ability1 = self.ability
+        self.loc1 = self.loc
+        offset = self.size
+        self.ability2 = ability2 = action_block[offset:offset+DWORD]
+        offset += DWORD
+        if ability2[-2:] != NUMERIC_ITEM:
+            self.ability2 = ability2[::-1]
+        offset += 9
+        x2 = b2i(action_block[offset:offset+DWORD])
+        offset += DWORD
+        y2 = b2i(action_block[offset:offset+DWORD])
+        offset += DWORD
+        self.loc2 = (x2, y2)
+        self.size = offset
+
+    def __str__(self):
+        s = super(DoubleAbility, self).__str__()
+        loc2str = ''
+        if self.loc1 != self.loc2:
+            loc2str = ' at ({0:.3%}, {1:.3%})'.format(self.loc2[0]/MAXPOS, 
+                                                      self.loc2[1]/MAXPOS) 
+        return '{0} -> {1}{2}'.format(s, ITEMS.get(self.ability2, self.ability2), 
+                                      loc2str)
 
 # has to come after the action classes 
 ACTIONS = {a.id: a for a in locals().values() if hasattr(a, 'id') and \
