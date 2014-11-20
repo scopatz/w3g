@@ -958,7 +958,7 @@ ITEMS = {
     b'\x12\x00\x0D\x00': 'Move unit',
     b'\x16\x00\x0D\x00': 'Patrol',
     b'\x19\x00\x0D\x00': 'Hold position',
-    b'\x21\x00\x0D\x00': 'Ggive away item (from inventory to unit or ground)',
+    b'\x21\x00\x0D\x00': 'Give item',
     b'\x22\x00\x0D\x00': 'Swap item place 7 (slot of item to swap with!)',
     b'\x23\x00\x0D\x00': 'Swap item place 8',
     b'\x24\x00\x0D\x00': 'Swap item place 4',
@@ -1232,7 +1232,7 @@ ITEMS = {
     b'\xBE\x02\x0D\x00': 'Incinerate (Fire Lord)',
     b'\xBF\x02\x0D\x00': 'Enable autocast: Incinerate (Fire Lord)',
     b'\xC0\x02\x0D\x00': 'Disable autocast: Incinerate (Fire Lord)',
-    b'\xFF\xFF\xFF\xFF': 'No object',
+    b'\xFF\xFF\xFF\xFF': 'Ground',
 }
 ABILITY_FLAGS = {
     0x0001: 'queue command',
@@ -1506,9 +1506,9 @@ class Ability(Action):
         o = 1 if f.build_num < BUILD_1_13 else WORD
         self.flags = b2i(action_block[offset:offset+o])
         offset += o
-        self.item = item = action_block[offset:offset+DWORD]
-        if item[-2:] != NUMERIC_ITEM:
-            self.item = item[::-1]
+        self.ability = ability = action_block[offset:offset+DWORD]
+        if ability[-2:] != NUMERIC_ITEM:
+            self.ability = ability[::-1]
         offset += DWORD
         offset += 2 * DWORD if f.build_num >= BUILD_1_07 else 0
         self.size = offset
@@ -1517,7 +1517,7 @@ class Ability(Action):
         s = super(Ability, self).__str__()
         aflgs = ABILITY_FLAGS.get(self.flags, None)
         astr = '' if aflgs is None else ' [{0}]'.format(aflgs)
-        return '{0} - {1}{2}'.format(s, ITEMS.get(self.item, self.item), astr) 
+        return '{0} - {1}{2}'.format(s, ITEMS.get(self.ability, self.ability), astr) 
 
 class AbilityPosition(Ability):
 
@@ -1545,11 +1545,37 @@ class AbilityPositionObject(AbilityPosition):
     def __init__(self, f, player_id, action_block):
         super(AbilityPositionObject, self).__init__(f, player_id, action_block)
         offset = self.size
-        self.object1 = action_block[offset:offset+DWORD]
-        offset += DWORD
-        self.object2 = action_block[offset:offset+DWORD]
-        offset += DWORD
+        self.object = action_block[offset:offset+2*DWORD]
+        offset += 2*DWORD
         self.size = offset
+
+    def obj(self, o):
+        if o == b'\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF': 
+            return 'Ground'
+        return 'Object#{0}'.format(b2i(o))
+
+    def _super_str(self):
+        return super(AbilityPositionObject, self).__str__()
+
+    def __str__(self):
+        s = super(AbilityPositionObject, self).__str__()
+        return '{0} {1}'.format(s, self.obj(self.object))
+
+class GiveItem(AbilityPositionObject):
+
+    id = 0x13
+
+    def __init__(self, f, player_id, action_block):
+        super(GiveItem, self).__init__(f, player_id, action_block)
+        offset = self.size
+        self.item = action_block[offset:offset+2*DWORD]
+        offset += 2*DWORD
+        self.size = offset
+
+    def __str__(self):
+        s = super(GiveItem, self)._super_str()
+        return '{0} {1} -> {2}'.format(s, self.obj(self.item), 
+                                          self.obj(self.object))
 
 # has to come after the action classes 
 ACTIONS = {a.id: a for a in locals().values() if hasattr(a, 'id') and \
