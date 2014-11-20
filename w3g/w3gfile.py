@@ -1630,6 +1630,36 @@ class ChangeSelection(Action):
         return '{0} {1} [{2}]'.format(s, self.modes[self.mode], 
                                       ', '.join(map(self.obj, self.objects)))
 
+class AssignGroupHotkey(Action):
+
+    id = 0x17
+
+    def __init__(self, f, player_id, action_block):
+        super(AssignGroupHotkey, self).__init__(f, player_id, action_block)
+        self.hotkey = (b2i(action_block[1]) + 1) % 10
+        n = b2i(action_block[2:2+WORD])
+        self.size = 4 + 8*n
+        objs = action_block[4:]
+        self.objects = [objs[i:i+8] for i in range(n)]
+
+    def __str__(self):
+        s = super(AssignGroupHotkey, self).__str__()
+        return '{0} Assign Hotkey #{1} [{2}]'.format(s, self.hotkey, 
+            ', '.join(map(self.obj, self.objects)))
+
+class SelectGroupHotkey(Action):
+
+    id = 0x18
+    size = 3
+
+    def __init__(self, f, player_id, action_block):
+        super(SelectGroupHotkey, self).__init__(f, player_id, action_block)
+        self.hotkey = (b2i(action_block[1]) + 1) % 10
+
+    def __str__(self):
+        s = super(SelectGroupHotkey, self).__str__()
+        return '{0} Select Hotkey #{1}'.format(s, self.hotkey)
+
 # has to come after the action classes 
 ACTIONS = {a.id: a for a in locals().values() if hasattr(a, 'id') and \
                                     isinstance(a.id, int) and a.id > 0}
