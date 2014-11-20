@@ -20,6 +20,9 @@ BUILD_1_07 = 6031
 # build number associated with v1.13 of the game
 BUILD_1_13 = 6037
 
+# build number associated with v1.14b of the game
+BUILD_1_14B = 6040
+
 if sys.version_info[0] < 3:
     import struct
     BLENFLAG = {1: 'B', WORD: 'H', DWORD: 'L'}
@@ -1659,6 +1662,41 @@ class SelectGroupHotkey(Action):
     def __str__(self):
         s = super(SelectGroupHotkey, self).__str__()
         return '{0} Select Hotkey #{1}'.format(s, self.hotkey)
+
+class SelectSubgroup(Action):
+
+    id = 0x19
+
+    def __init__(self, f, player_id, action_block):
+        super(SelectSubgroup, self).__init__(f, player_id, action_block)
+        if f.build_num < BUILD_1_14B:
+            self.size = 2 
+            self.subgroup = b2i(action_block[1])
+        else:
+            self.size = 13
+            offset = 1
+            self.ability = ability = action_block[offset:offset+DWORD]
+            offset += DWORD
+            if ability[-2:] != NUMERIC_ITEM:
+                self.ability = ability[::-1]
+            self.object = action_block[offset:offset+2*DWORD]
+            offset += 2*DWORD
+
+    def __str__(self):
+        s = super(SelectSubgroup, self).__str__()
+        if f.build_num < BUILD_1_14B:
+            return '{0} - #{1}'.format(s, self.subgroup)
+        else:
+            return '{0} - {1} {2}'.format(s, 
+                ITEMS.get(self.ability, self.ability), self.obj(self.object))
+
+class PreSubselect(Action):
+
+    id = 0x1A
+
+    def __init__(self, f, player_id, action_block):
+        super(PreSubselect, self).__init__(f, player_id, action_block)
+
 
 # has to come after the action classes 
 ACTIONS = {a.id: a for a in locals().values() if hasattr(a, 'id') and \
