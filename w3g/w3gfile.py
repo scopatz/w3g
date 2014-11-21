@@ -1697,10 +1697,51 @@ class PreSubselect(Action):
     def __init__(self, f, player_id, action_block):
         super(PreSubselect, self).__init__(f, player_id, action_block)
 
+class UnknownAction(Action):
+
+    #  <=1.14b, >1.14b
+    id = (0x1A, 0x1B)
+    size = 10
+
+    def __init__(self, f, player_id, action_block):
+        super(UnknownAction, self).__init__(f, player_id, action_block)
+
+class SelectGroundItem(Action):
+
+    #  <=1.14b, >1.14b
+    id = (0x1B, 0x1C)
+    size = 10
+
+    def __init__(self, f, player_id, action_block):
+        super(SelectGroundItem, self).__init__(f, player_id, action_block)
+        self.item = action_block[2:10]
+
+    def __str__(self):
+        s = super(SelectGroundItem, self).__str__()
+        return '{0} - {1} '.format(s, self.obj(self.item))
+
+class CancelHeroRevival(Action):
+
+    #  <=1.14b, >1.14b
+    id = (0x1C, 0x1D)
+    size = 9
+
+    def __init__(self, f, player_id, action_block):
+        super(CancelHeroRevival, self).__init__(f, player_id, action_block)
+        self.hero = action_block[1:9]
+
+    def __str__(self):
+        s = super(CancelHeroRevival, self).__str__()
+        return '{0} - {1} '.format(s, self.obj(self.hero))
+
 
 # has to come after the action classes 
 ACTIONS = {a.id: a for a in locals().values() if hasattr(a, 'id') and \
                                     isinstance(a.id, int) and a.id > 0}
+ACTIONS_LE_1_14B = {a.id[0]: a for a in locals().values() if hasattr(a, 'id') and \
+                                    isinstance(a.id, tuple)}
+ACTIONS_GT_1_14B = {a.id[1]: a for a in locals().values() if hasattr(a, 'id') and \
+                                    isinstance(a.id, tuple)}
 
 class File(object):
     """A class that represents w3g files.
@@ -1945,9 +1986,14 @@ class File(object):
         return 9
 
     def _parse_actions(self, player_id, action_block):
+        actions = dict(ACTIONS)
+        actions.update(ACTIONS_LE_1_14B if self.build_num <= BUILD_1_14B \
+                       else ACTIONS_GT_1_14B)
+        print(actions)
+        sys.exit()
         while len(action_block) > 0:
             aid = b2i(action_block[0])
-            action = ACTIONS.get(aid, None)
+            action = actions.get(aid, None)
             if action is None:
                 return 
             e = action(self, player_id, action_block)
