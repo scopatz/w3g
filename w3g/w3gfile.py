@@ -7,6 +7,7 @@ import io
 import sys
 import base64
 import zlib
+import struct
 from collections import namedtuple
 
 WORD = 2   # bytes
@@ -24,7 +25,6 @@ BUILD_1_13 = 6037
 BUILD_1_14B = 6040
 
 if sys.version_info[0] < 3:
-    import struct
     BLENFLAG = {1: 'B', WORD: 'H', DWORD: 'L'}
     b2i = lambda b: struct.unpack('<' + BLENFLAG[len(b)], b)[0]
 
@@ -1734,14 +1734,201 @@ class CancelHeroRevival(Action):
         s = super(CancelHeroRevival, self).__str__()
         return '{0} - {1} '.format(s, self.obj(self.hero))
 
+class RemoveUnitFromBuildingQueue(Action):
+
+    #  <=1.14b, >1.14b
+    id = (0x1D, 0x1E)
+    size = 6
+
+    def __init__(self, f, player_id, action_block):
+        super(RemoveUnitFromBuildingQueue, self).__init__(f, player_id, action_block)
+        self.pos = b2i(action_block[1])
+        self.unit = unit = action_block[2:2+DWORD]
+        if unit[-2:] != NUMERIC_ITEM:
+            self.unit = unit[::-1]
+
+    def __str__(self):
+        s = super(RemoveUnitFromBuildingQueue, self).__str__()
+        return '{0} - {1} at position #{2}'.format(s, ITEMS.get(self.unit, self.unit),
+                                                   self.pos)
+
+class RareUnknownAction(Action):
+
+    id = 0x21
+    size = 9
+
+    def __init__(self, f, player_id, action_block):
+        super(RareUnknownAction, self).__init__(f, player_id, action_block)
+
+class TheDudeAbides(Action):
+
+    id = 0x20
+    size = 1
+
+    def __init__(self, f, player_id, action_block):
+        super(TheDudeAbides, self).__init__(f, player_id, action_block)
+
+class SomebodySetUpUsTheBomb(Action):
+
+    id = 0x22
+    size = 1
+
+    def __init__(self, f, player_id, action_block):
+        super(SomebodySetUpUsTheBomb, self).__init__(f, player_id, action_block)
+
+class WarpTen(Action):
+
+    id = 0x23
+    size = 1
+
+    def __init__(self, f, player_id, action_block):
+        super(WarpTen, self).__init__(f, player_id, action_block)
+
+class IocainePowder(Action):
+
+    id = 0x24
+    size = 1
+
+    def __init__(self, f, player_id, action_block):
+        super(IocainePowder, self).__init__(f, player_id, action_block)
+
+class PointBreak(Action):
+
+    id = 0x25
+    size = 1
+
+    def __init__(self, f, player_id, action_block):
+        super(PointBreak, self).__init__(f, player_id, action_block)
+
+class WhosYourDaddy(Action):
+
+    id = 0x26
+    size = 1
+
+    def __init__(self, f, player_id, action_block):
+        super(WhosYourDaddy, self).__init__(f, player_id, action_block)
+
+class KeyserSoze(Action):
+
+    id = 0x27
+    size = 6
+
+    def __init__(self, f, player_id, action_block):
+        super(KeyserSoze, self).__init__(f, player_id, action_block)
+        self.gold = b2i(action_block[2:2+DWORD]) - 2**31
+
+    def __str__(self):
+        s = super(KeyserSoze, self).__str__()
+        return '{0} - {1} gold'.format(s, self.gold)
+
+class LeafitToMe(Action):
+
+    id = 0x28
+    size = 6
+
+    def __init__(self, f, player_id, action_block):
+        super(LeafitToMe, self).__init__(f, player_id, action_block)
+        self.lumber = b2i(action_block[2:2+DWORD]) - 2**31
+
+    def __str__(self):
+        s = super(LeafitToMe, self).__str__()
+        return '{0} - {1} lumber'.format(s, self.lumber)
+
+class ThereIsNoSpoon(Action):
+
+    id = 0x2
+    size = 1
+
+    def __init__(self, f, player_id, action_block):
+        super(ThereIsNoSpoon, self).__init__(f, player_id, action_block)
+
+class StrengthAndHonor(Action):
+
+    id = 0x2A
+    size = 1
+
+    def __init__(self, f, player_id, action_block):
+        super(StrengthAndHonor, self).__init__(f, player_id, action_block)
+
+class ItVexesMe(Action):
+
+    id = 0x2B
+    size = 1
+
+    def __init__(self, f, player_id, action_block):
+        super(ItVexesMe, self).__init__(f, player_id, action_block)
+
+class WhoIsJohnGalt(Action):
+
+    id = 0x2C
+    size = 1
+
+    def __init__(self, f, player_id, action_block):
+        super(WhoIsJohnGalt, self).__init__(f, player_id, action_block)
+
+class GreedIsGood(Action):
+
+    id = 0x2D
+    size = 6
+
+    def __init__(self, f, player_id, action_block):
+        super(GreedIsGood, self).__init__(f, player_id, action_block)
+        self.gold = self.lumber = b2i(action_block[2:2+DWORD]) - 2**31
+
+    def __str__(self):
+        s = super(GreedIsGood, self).__str__()
+        return '{0} - {1} gold and {2} lumber'.format(s, self.gold, self.lumber)
+
+class DayLightSavings(Action):
+
+    id = 0x2#
+    size = 5
+
+    def __init__(self, f, player_id, action_block):
+        super(DayLightSavings, self).__init__(f, player_id, action_block)
+        self.time = struct.unpack('f', action_block[1:5])
+
+class ISeeDeadPeople(Action):
+
+    id = 0x2F
+    size = 1
+
+    def __init__(self, f, player_id, action_block):
+        super(ISeeDeadPeople, self).__init__(f, player_id, action_block)
+
+class Synergy(Action):
+
+    id = 0x30
+    size = 1
+
+    def __init__(self, f, player_id, action_block):
+        super(Synergy, self).__init__(f, player_id, action_block)
+
+class SharpAndShiny(Action):
+
+    id = 0x31
+    size = 1
+
+    def __init__(self, f, player_id, action_block):
+        super(SharpAndShiny, self).__init__(f, player_id, action_block)
+
+class AllYourBaseAreBelongToUs(Action):
+
+    id = 0x32
+    size = 1
+
+    def __init__(self, f, player_id, action_block):
+        super(AllYourBaseAreBelongToUs, self).__init__(f, player_id, action_block)
 
 # has to come after the action classes 
-ACTIONS = {a.id: a for a in locals().values() if hasattr(a, 'id') and \
+_locs = locals()
+ACTIONS = {a.id: a for a in _locs.values() if hasattr(a, 'id') and \
                                     isinstance(a.id, int) and a.id > 0}
-ACTIONS_LE_1_14B = {a.id[0]: a for a in locals().values() if hasattr(a, 'id') and \
+ACTIONS_LE_1_14B = {a.id[0]: a for a in _locs.values() if hasattr(a, 'id') and \
                                     isinstance(a.id, tuple)}
-ACTIONS_GT_1_14B = {a.id[1]: a for a in locals().values() if hasattr(a, 'id') and \
+ACTIONS_GT_1_14B = {a.id[1]: a for a in _locs.values() if hasattr(a, 'id') and \
                                     isinstance(a.id, tuple)}
+del _locs
 
 class File(object):
     """A class that represents w3g files.
