@@ -2176,8 +2176,6 @@ class File(object):
         actions = dict(ACTIONS)
         actions.update(ACTIONS_LE_1_14B if self.build_num <= BUILD_1_14B \
                        else ACTIONS_GT_1_14B)
-        print(actions)
-        sys.exit()
         while len(action_block) > 0:
             aid = b2i(action_block[0])
             action = actions.get(aid, None)
