@@ -1324,6 +1324,8 @@ class SlotRecord(namedtuple('Player', ['player_id', 'status', 'ishuman', 'team',
 class Event(object):
     """An event base class."""
 
+    apm = False
+
     def __init__(self, f):
         self.f = f
         self.time = f._clock
@@ -1342,6 +1344,8 @@ class Event(object):
         return ":".join(rtn)
 
 class Chat(Event):
+
+    apm = False
 
     def __init__(self, f, player_id, mode, msg):
         super(Chat, self).__init__(f)
@@ -1363,6 +1367,8 @@ class Chat(Event):
         return self.f.player_name(pid)
 
 class LeftGame(Event):
+
+    apm = False
 
     remote_results = {
         0x01: 'left',
@@ -1423,6 +1429,8 @@ class LeftGame(Event):
 
 class Countdown(Event):
 
+    apm = False
+
     def __init__(self, f, mode, secs):
         super(Countdown, self).__init__(f)
         self.mode = mode
@@ -1438,6 +1446,7 @@ class Action(Event):
     le = -1
     id = -1
     size = 1
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(Action, self).__init__(f)
@@ -1457,6 +1466,7 @@ class Action(Event):
 class Pause(Action):
 
     id = 0x01
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(Pause, self).__init__(f, player_id, action_block)
@@ -1464,6 +1474,7 @@ class Pause(Action):
 class Resume(Action):
 
     id = 0x02
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(Resume, self).__init__(f, player_id, action_block)
@@ -1472,6 +1483,7 @@ class SetGameSpeed(Action):
 
     id = 0x03
     size = 2
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(SetGameSpeed, self).__init__(f, player_id, action_block)
@@ -1484,6 +1496,7 @@ class SetGameSpeed(Action):
 class IncreaseGameSpeed(Action):
 
     id = 0x04
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(IncreaseGameSpeed, self).__init__(f, player_id, action_block)
@@ -1491,6 +1504,7 @@ class IncreaseGameSpeed(Action):
 class DecreaseGameSpeed(Action):
 
     id = 0x05
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(DecreaseGameSpeed, self).__init__(f, player_id, action_block)
@@ -1499,6 +1513,7 @@ class SaveGame(Action):
 
     id = 0x06
     size = None
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(SaveGame, self).__init__(f, player_id, action_block)
@@ -1513,6 +1528,7 @@ class SaveGameFinished(Action):
 
     id = 0x07
     size = 5
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(SaveGameFinished, self).__init__(f, player_id, action_block)
@@ -1520,6 +1536,7 @@ class SaveGameFinished(Action):
 class Ability(Action):
 
     id = 0x10
+    apm = True
 
     def __init__(self, f, player_id, action_block):
         super(Ability, self).__init__(f, player_id, action_block)
@@ -1543,6 +1560,7 @@ class Ability(Action):
 class AbilityPosition(Ability):
 
     id = 0x11
+    apm = True
 
     def __init__(self, f, player_id, action_block):
         super(AbilityPosition, self).__init__(f, player_id, action_block)
@@ -1562,6 +1580,7 @@ class AbilityPosition(Ability):
 class AbilityPositionObject(AbilityPosition):
 
     id = 0x12
+    apm = True
 
     def __init__(self, f, player_id, action_block):
         super(AbilityPositionObject, self).__init__(f, player_id, action_block)
@@ -1580,6 +1599,7 @@ class AbilityPositionObject(AbilityPosition):
 class GiveItem(AbilityPositionObject):
 
     id = 0x13
+    apm = True
 
     def __init__(self, f, player_id, action_block):
         super(GiveItem, self).__init__(f, player_id, action_block)
@@ -1596,6 +1616,7 @@ class GiveItem(AbilityPositionObject):
 class DoubleAbility(AbilityPosition):
 
     id = 0x14
+    apm = True
 
     def __init__(self, f, player_id, action_block):
         super(DoubleAbility, self).__init__(f, player_id, action_block)
@@ -1626,6 +1647,7 @@ class DoubleAbility(AbilityPosition):
 class ChangeSelection(Action):
 
     id = 0x16
+    apm = True
 
     modes = {0x01: 'Select', 0x02: 'Deselect'}
 
@@ -1636,6 +1658,21 @@ class ChangeSelection(Action):
         self.size = 4 + 8*n
         objs = action_block[4:]
         self.objects = [objs[i:i+8] for i in range(n)]
+        self.calc_apm()
+
+    def calc_apm(self):
+        if self.mode == 0x02:
+            return
+        if len(self.f.events) == 0:
+            return
+        last = self.f.events[-1]
+        if last.player_id != self.player_id:
+            return
+        if not isinstance(last, ChangeSelection):
+            return
+        if last.mode != 0x02:
+            return 
+        self.apm = False
 
     def __str__(self):
         s = super(ChangeSelection, self).__str__()
@@ -1645,6 +1682,7 @@ class ChangeSelection(Action):
 class AssignGroupHotkey(Action):
 
     id = 0x17
+    apm = True
 
     def __init__(self, f, player_id, action_block):
         super(AssignGroupHotkey, self).__init__(f, player_id, action_block)
@@ -1663,6 +1701,7 @@ class SelectGroupHotkey(Action):
 
     id = 0x18
     size = 3
+    apm = True
 
     def __init__(self, f, player_id, action_block):
         super(SelectGroupHotkey, self).__init__(f, player_id, action_block)
@@ -1675,12 +1714,15 @@ class SelectGroupHotkey(Action):
 class SelectSubgroup(Action):
 
     id = 0x19
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(SelectSubgroup, self).__init__(f, player_id, action_block)
         if f.build_num < BUILD_1_14B:
             self.size = 2 
             self.subgroup = b2i(action_block[1])
+            if self.subgroup != 0x00 and self.subgroup != 0xFF:
+                self.apm = True
         else:
             self.size = 13
             offset = 1
@@ -1702,6 +1744,7 @@ class SelectSubgroup(Action):
 class PreSubselect(Action):
 
     id = 0x1A
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(PreSubselect, self).__init__(f, player_id, action_block)
@@ -1712,6 +1755,7 @@ class UnknownAction(Action):
     le = BUILD_1_14B
     id = (0x1A, 0x1B)
     size = 10
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(UnknownAction, self).__init__(f, player_id, action_block)
@@ -1722,6 +1766,7 @@ class SelectGroundItem(Action):
     le = BUILD_1_14B
     id = (0x1B, 0x1C)
     size = 10
+    apm = True
 
     def __init__(self, f, player_id, action_block):
         super(SelectGroundItem, self).__init__(f, player_id, action_block)
@@ -1737,6 +1782,7 @@ class CancelHeroRevival(Action):
     le = BUILD_1_14B
     id = (0x1C, 0x1D)
     size = 9
+    apm = True
 
     def __init__(self, f, player_id, action_block):
         super(CancelHeroRevival, self).__init__(f, player_id, action_block)
@@ -1752,6 +1798,7 @@ class RemoveUnitFromBuildingQueue(Action):
     le = BUILD_1_14B
     id = (0x1D, 0x1E)
     size = 6
+    apm = True
 
     def __init__(self, f, player_id, action_block):
         super(RemoveUnitFromBuildingQueue, self).__init__(f, player_id, action_block)
@@ -1769,6 +1816,7 @@ class RareUnknownAction(Action):
 
     id = 0x21
     size = 9
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(RareUnknownAction, self).__init__(f, player_id, action_block)
@@ -1777,6 +1825,7 @@ class TheDudeAbides(Action):
 
     id = 0x20
     size = 1
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(TheDudeAbides, self).__init__(f, player_id, action_block)
@@ -1785,6 +1834,7 @@ class SomebodySetUpUsTheBomb(Action):
 
     id = 0x22
     size = 1
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(SomebodySetUpUsTheBomb, self).__init__(f, player_id, action_block)
@@ -1793,6 +1843,7 @@ class WarpTen(Action):
 
     id = 0x23
     size = 1
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(WarpTen, self).__init__(f, player_id, action_block)
@@ -1801,6 +1852,7 @@ class IocainePowder(Action):
 
     id = 0x24
     size = 1
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(IocainePowder, self).__init__(f, player_id, action_block)
@@ -1809,6 +1861,7 @@ class PointBreak(Action):
 
     id = 0x25
     size = 1
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(PointBreak, self).__init__(f, player_id, action_block)
@@ -1817,6 +1870,7 @@ class WhosYourDaddy(Action):
 
     id = 0x26
     size = 1
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(WhosYourDaddy, self).__init__(f, player_id, action_block)
@@ -1825,6 +1879,7 @@ class KeyserSoze(Action):
 
     id = 0x27
     size = 6
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(KeyserSoze, self).__init__(f, player_id, action_block)
@@ -1838,6 +1893,7 @@ class LeafitToMe(Action):
 
     id = 0x28
     size = 6
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(LeafitToMe, self).__init__(f, player_id, action_block)
@@ -1851,6 +1907,7 @@ class ThereIsNoSpoon(Action):
 
     id = 0x2
     size = 1
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(ThereIsNoSpoon, self).__init__(f, player_id, action_block)
@@ -1859,6 +1916,7 @@ class StrengthAndHonor(Action):
 
     id = 0x2A
     size = 1
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(StrengthAndHonor, self).__init__(f, player_id, action_block)
@@ -1867,6 +1925,7 @@ class ItVexesMe(Action):
 
     id = 0x2B
     size = 1
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(ItVexesMe, self).__init__(f, player_id, action_block)
@@ -1875,6 +1934,7 @@ class WhoIsJohnGalt(Action):
 
     id = 0x2C
     size = 1
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(WhoIsJohnGalt, self).__init__(f, player_id, action_block)
@@ -1883,6 +1943,7 @@ class GreedIsGood(Action):
 
     id = 0x2D
     size = 6
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(GreedIsGood, self).__init__(f, player_id, action_block)
@@ -1894,8 +1955,9 @@ class GreedIsGood(Action):
 
 class DayLightSavings(Action):
 
-    id = 0x2#
+    id = 0x2E
     size = 5
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(DayLightSavings, self).__init__(f, player_id, action_block)
@@ -1905,6 +1967,7 @@ class ISeeDeadPeople(Action):
 
     id = 0x2F
     size = 1
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(ISeeDeadPeople, self).__init__(f, player_id, action_block)
@@ -1913,6 +1976,7 @@ class Synergy(Action):
 
     id = 0x30
     size = 1
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(Synergy, self).__init__(f, player_id, action_block)
@@ -1921,6 +1985,7 @@ class SharpAndShiny(Action):
 
     id = 0x31
     size = 1
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(SharpAndShiny, self).__init__(f, player_id, action_block)
@@ -1929,6 +1994,7 @@ class AllYourBaseAreBelongToUs(Action):
 
     id = 0x32
     size = 1
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(AllYourBaseAreBelongToUs, self).__init__(f, player_id, action_block)
@@ -1937,6 +2003,7 @@ class ChangeAllyOptions(Action):
 
     id = 0x50
     size = 6
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(ChangeAllyOptions, self).__init__(f, player_id, action_block)
@@ -1968,6 +2035,7 @@ class TransferResources(Action):
 
     id = 0x51
     size = 10
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(TransferResources, self).__init__(f, player_id, action_block)
@@ -1986,6 +2054,7 @@ class TransferResources(Action):
 class MapTriggerChatCommand(Action):
 
     id = 0x60
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(MapTriggerChatCommand, self).__init__(f, player_id, action_block)
@@ -1997,6 +2066,7 @@ class EscapePressed(Action):
 
     id = 0x61
     size = 1
+    apm = True
 
     def __init__(self, f, player_id, action_block):
         super(EscapePressed, self).__init__(f, player_id, action_block)
@@ -2004,6 +2074,7 @@ class EscapePressed(Action):
 class SecenarioTrigger(Action):
 
     id = 0x62
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(SecnarioTrigger, self).__init__(f, player_id, action_block)
@@ -2014,6 +2085,7 @@ class HeroSkillSubmenu(Action):
     le = BUILD_1_06
     id = (0x65, 0x66)
     size = 1
+    apm = True
 
     def __init__(self, f, player_id, action_block):
         super(HeroSkillSubmenu, self).__init__(f, player_id, action_block)
@@ -2023,6 +2095,7 @@ class BuildingSubmenu(Action):
     le = BUILD_1_06
     id = (0x66, 0x67)
     size = 1
+    apm = True
 
     def __init__(self, f, player_id, action_block):
         super(BuildingSubmenu, self).__init__(f, player_id, action_block)
@@ -2032,6 +2105,7 @@ class MinimapSignal(Action):
     le = BUILD_1_06
     id = (0x67, 0x68)
     size = 13
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(MinimapSignal, self).__init__(f, player_id, action_block)
@@ -2052,6 +2126,7 @@ class ContinueGameB(Action):
     le = BUILD_1_06
     id = (0x68, 0x69)
     size = 17
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(ContinueGameB, self).__init__(f, player_id, action_block)
@@ -2061,6 +2136,7 @@ class ContinueGameA(Action):
     le = BUILD_1_06
     id = (0x69, 0x6A)
     size = 17
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(ContinueGameA, self).__init__(f, player_id, action_block)
@@ -2069,6 +2145,7 @@ class UnknownScenario(Action):
 
     id = 0x75
     size = 2
+    apm = False
 
     def __init__(self, f, player_id, action_block):
         super(UnknownScenario, self).__init__(f, player_id, action_block)
@@ -2365,9 +2442,25 @@ class File(object):
             return 'observer'
         return p.name
 
+    def print_apm(self):
+        acts = {p.id: 0 for p in self.players}
+        for e in self.events:
+            if e.apm:
+                acts[e.player_id] += 1
+        mins = self._clock / (60 * 1000.0)
+        m = "Actions per minute over {0:.3} min".format(mins)
+        print('-' * len(m))
+        print(m)
+        for pid, act in sorted(acts.items()):
+            if act == 0:
+                continue
+            print("  {0}: {1:.5}".format(self.player_name(pid), act/mins))
+        
+
 if __name__ == '__main__':
     f = File(sys.argv[1])
     for event in f.events:
         print(event)
+    f.print_apm()
     #print(f.version_num)
     #print(f.build_num)
