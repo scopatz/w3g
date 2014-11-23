@@ -1973,6 +1973,17 @@ class TransferResources(Action):
         return '{0} transfered {1} gold and {2} lumber to {3}'.format(s, self.gold, 
                                                                       self.lumber, a)
 
+class MapTriggerChatCommand(Action):
+
+    id = 0x60
+
+    def __init__(self, f, player_id, action_block):
+        super(MapTriggerChatCommand, self).__init__(f, player_id, action_block)
+        offset = 1 + 2*DWORD
+        s, i = nulltermstr(action_block[offset:])
+        self.size = offset + i + 1
+
+
 # has to come after the action classes 
 _locs = locals()
 ACTIONS = {a.id: a for a in _locs.values() if hasattr(a, 'id') and \
