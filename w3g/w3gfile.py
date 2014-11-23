@@ -16,6 +16,9 @@ NULL = b'\0'
 MAXPOS = 2.0**32
 
 # build number associated with v1.07 of the game
+BUILD_1_06 = 4656
+
+# build number associated with v1.07 of the game
 BUILD_1_07 = 6031
 
 # build number associated with v1.13 of the game
@@ -1919,6 +1922,38 @@ class AllYourBaseAreBelongToUs(Action):
 
     def __init__(self, f, player_id, action_block):
         super(AllYourBaseAreBelongToUs, self).__init__(f, player_id, action_block)
+
+class ChangeAllyOptions(Action):
+
+    id = 0x50
+    size = 6
+
+    def __init__(self, f, player_id, action_block):
+        super(ChangeAllyOptions, self).__init__(f, player_id, action_block)
+        self.ally_id = b2i(action_block[1])
+        self.flags = b2i(action_block[2:2+WORD])
+
+    def flagstr(self):
+        fs = []
+        b = bits(self.flags)
+        if all(b[:5]):
+            fs.append('is allied')
+        if b[5]:
+            fs.append('shares vision')
+        if b[6]:
+            s.append('shares unit control')
+        svi = 10 if self.buil_num >= BUILD_1_07 else 9
+        if b[svi]:
+            s.append('shares victory')
+        if len(fs) > 1:
+            fs[-1] = 'and ' + fs[-1]
+        return ', '.format(fs)
+
+    def __str__(self):
+        s = super(ChangeAllyOptions, self).__str__()
+        a = self.f.player_name(self.ally_id)
+        return '{0} {1} with {2}'.format(s, self.flagstr(), a)
+
 
 # has to come after the action classes 
 _locs = locals()
