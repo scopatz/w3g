@@ -1983,6 +1983,21 @@ class MapTriggerChatCommand(Action):
         s, i = nulltermstr(action_block[offset:])
         self.size = offset + i + 1
 
+class EscapePressed(Action):
+
+    id = 0x61
+    size = 1
+
+    def __init__(self, f, player_id, action_block):
+        super(EscapePressed, self).__init__(f, player_id, action_block)
+
+class SecenarioTrigger(Action):
+
+    id = 0x62
+
+    def __init__(self, f, player_id, action_block):
+        super(SecnarioTrigger, self).__init__(f, player_id, action_block)
+        self.size = 13 if self.f.build_num >= BUILD_1_07 else 9
 
 # has to come after the action classes 
 _locs = locals()
