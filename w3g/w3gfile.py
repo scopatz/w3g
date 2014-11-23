@@ -13,7 +13,7 @@ from collections import namedtuple
 WORD = 2   # bytes
 DWORD = 4  # bytes, double word
 NULL = b'\0'
-MAXPOS = 2.0**32
+MAXPOS = 16384.0  # maps may range from -MAXPOS to MAXPOS with (0, 0) at the center
 
 # build number associated with v1.07 of the game
 BUILD_1_06 = 4656
@@ -96,6 +96,9 @@ def bitfield(b, idx):
             val += x * 2**i
         f = val
     return f
+
+def b2f(b):
+    return struct.unpack('<f', b)[0]
 
 RACES = {
     0x01: 'human',
@@ -1542,9 +1545,9 @@ class AbilityPosition(Ability):
     def __init__(self, f, player_id, action_block):
         super(AbilityPosition, self).__init__(f, player_id, action_block)
         offset = self.size
-        x = b2i(action_block[offset:offset+DWORD])
+        x = b2f(action_block[offset:offset+DWORD])
         offset += DWORD
-        y = b2i(action_block[offset:offset+DWORD])
+        y = b2f(action_block[offset:offset+DWORD])
         offset += DWORD
         self.loc = (x, y)
         self.size = offset
@@ -1602,9 +1605,9 @@ class DoubleAbility(AbilityPosition):
         if ability2[-2:] != NUMERIC_ITEM:
             self.ability2 = ability2[::-1]
         offset += 9
-        x2 = b2i(action_block[offset:offset+DWORD])
+        x2 = b2f(action_block[offset:offset+DWORD])
         offset += DWORD
-        y2 = b2i(action_block[offset:offset+DWORD])
+        y2 = b2f(action_block[offset:offset+DWORD])
         offset += DWORD
         self.loc2 = (x2, y2)
         self.size = offset
@@ -2031,9 +2034,9 @@ class MinimapSignal(Action):
     def __init__(self, f, player_id, action_block):
         super(MinimapSignal, self).__init__(f, player_id, action_block)
         offset = 1
-        x = b2i(action_block[offset:offset+DWORD])
+        x = b2f(action_block[offset:offset+DWORD])
         offset += DWORD
-        y = b2i(action_block[offset:offset+DWORD])
+        y = b2f(action_block[offset:offset+DWORD])
         offset += DWORD
         self.loc = (x, y)
 
