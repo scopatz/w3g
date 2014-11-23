@@ -28,7 +28,7 @@ BUILD_1_13 = 6037
 BUILD_1_14B = 6040
 
 if sys.version_info[0] < 3:
-    BLENFLAG = {1: 'B', WORD: 'H', DWORD: 'L'}
+    BLENFLAG = {1: 'B', WORD: 'H', DWORD: 'L', 8: 'Q'}
     b2i = lambda b: struct.unpack('<' + BLENFLAG[len(b)], b)[0]
 
     # to print unicode
@@ -2070,7 +2070,6 @@ class UnknownScenario(Action):
 
     def __init__(self, f, player_id, action_block):
         super(UnknownScenario, self).__init__(f, player_id, action_block)
-
 
 # has to come after the action classes 
 _locs = locals()
