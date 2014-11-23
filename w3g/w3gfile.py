@@ -1954,6 +1954,24 @@ class ChangeAllyOptions(Action):
         a = self.f.player_name(self.ally_id)
         return '{0} {1} with {2}'.format(s, self.flagstr(), a)
 
+class TransferResources(Action):
+
+    id = 0x51
+    size = 10
+
+    def __init__(self, f, player_id, action_block):
+        super(TransferResources, self).__init__(f, player_id, action_block)
+        self.ally_id = b2i(action_block[1])
+        offset = 2
+        self.gold = b2i(action_block[offset:offset+DWORD])
+        offset += DWORD
+        self.lumber = b2i(action_block[offset:offset+DWORD])
+
+    def __str__(self):
+        s = super(TransferResources, self).__str__()
+        a = self.f.player_name(self.ally_id)
+        return '{0} transfered {1} gold and {2} lumber to {3}'.format(s, self.gold, 
+                                                                      self.lumber, a)
 
 # has to come after the action classes 
 _locs = locals()
