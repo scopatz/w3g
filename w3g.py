@@ -2071,13 +2071,13 @@ class EscapePressed(Action):
     def __init__(self, f, player_id, action_block):
         super(EscapePressed, self).__init__(f, player_id, action_block)
 
-class SecenarioTrigger(Action):
+class ScenarioTrigger(Action):
 
     id = 0x62
     apm = False
 
     def __init__(self, f, player_id, action_block):
-        super(SecnarioTrigger, self).__init__(f, player_id, action_block)
+        super(ScenarioTrigger, self).__init__(f, player_id, action_block)
         self.size = 13 if self.f.build_num >= BUILD_1_07 else 9
 
 class HeroSkillSubmenu(Action):
@@ -2239,7 +2239,11 @@ class File(object):
             block_size_decomp = b2i(f.read(WORD))
             self.loc += DWORD
             raw = f.read(block_size)
-            dat = zlib.decompress(raw)
+            # Have to use Decompression obj rather than the decompress() func.
+            # This avoids 'incomplete or truncated stream' errors
+            #   dat = zlib.decompress(raw, 15, block_size_decomp)
+            d = zlib.decompressobj()
+            dat = d.decompress(raw, block_size_decomp)
             if len(dat) != block_size_decomp:
                 raise zlib.error("Decompressed data size does not match expected size.")
             data += dat
