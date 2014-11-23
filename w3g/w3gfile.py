@@ -1430,6 +1430,7 @@ class Countdown(Event):
 
 class Action(Event):
 
+    le = -1
     id = -1
     size = 1
 
@@ -1703,6 +1704,7 @@ class PreSubselect(Action):
 class UnknownAction(Action):
 
     #  <=1.14b, >1.14b
+    le = BUILD_1_14B
     id = (0x1A, 0x1B)
     size = 10
 
@@ -1712,6 +1714,7 @@ class UnknownAction(Action):
 class SelectGroundItem(Action):
 
     #  <=1.14b, >1.14b
+    le = BUILD_1_14B
     id = (0x1B, 0x1C)
     size = 10
 
@@ -1726,6 +1729,7 @@ class SelectGroundItem(Action):
 class CancelHeroRevival(Action):
 
     #  <=1.14b, >1.14b
+    le = BUILD_1_14B
     id = (0x1C, 0x1D)
     size = 9
 
@@ -1740,6 +1744,7 @@ class CancelHeroRevival(Action):
 class RemoveUnitFromBuildingQueue(Action):
 
     #  <=1.14b, >1.14b
+    le = BUILD_1_14B
     id = (0x1D, 0x1E)
     size = 6
 
@@ -1999,14 +2004,46 @@ class SecenarioTrigger(Action):
         super(SecnarioTrigger, self).__init__(f, player_id, action_block)
         self.size = 13 if self.f.build_num >= BUILD_1_07 else 9
 
+class HeroSkillSubmenu(Action):
+
+    le = BUILD_1_06
+    id = (0x65, 0x66)
+    size = 1
+
+    def __init__(self, f, player_id, action_block):
+        super(HeroSkillSubmenu, self).__init__(f, player_id, action_block)
+
+class BuildingSubmenu(Action):
+
+    le = BUILD_1_06
+    id = (0x66, 0x67)
+    size = 1
+
+    def __init__(self, f, player_id, action_block):
+        super(BuildingSubmenu, self).__init__(f, player_id, action_block)
+
+
+0x68 - Minimap signal (ping)                                [ 13 bytes ] [APM-]
+0x67 for WarCraft III patch version <= 1.06
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ 1 dword - Location X
+ 1 dword - Location Y
+ 1 dword - unknown (00 00 A0 40)
+
+
+
 # has to come after the action classes 
 _locs = locals()
 ACTIONS = {a.id: a for a in _locs.values() if hasattr(a, 'id') and \
                                     isinstance(a.id, int) and a.id > 0}
+ACTIONS_LE_1_06 = {a.id[0]: a for a in _locs.values() if hasattr(a, 'id') and \
+                                    isinstance(a.id, tuple) and a.le == BUILD_1_06}
+ACTIONS_GT_1_06 = {a.id[1]: a for a in _locs.values() if hasattr(a, 'id') and \
+                                    isinstance(a.id, tuple) and a.le == BUILD_1_06}
 ACTIONS_LE_1_14B = {a.id[0]: a for a in _locs.values() if hasattr(a, 'id') and \
-                                    isinstance(a.id, tuple)}
+                                    isinstance(a.id, tuple) and a.le == BUILD_1_14B}
 ACTIONS_GT_1_14B = {a.id[1]: a for a in _locs.values() if hasattr(a, 'id') and \
-                                    isinstance(a.id, tuple)}
+                                    isinstance(a.id, tuple) and a.le == BUILD_1_14B}
 del _locs
 
 class File(object):
@@ -2253,6 +2290,8 @@ class File(object):
 
     def _parse_actions(self, player_id, action_block):
         actions = dict(ACTIONS)
+        actions.update(ACTIONS_LE_1_06 if self.build_num <= BUILD_1_06 \
+                       else ACTIONS_GT_1_06)
         actions.update(ACTIONS_LE_1_14B if self.build_num <= BUILD_1_14B \
                        else ACTIONS_GT_1_14B)
         while len(action_block) > 0:
