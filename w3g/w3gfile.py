@@ -1,6 +1,8 @@
 """Implements the basic w3g file class. Based on information available at 
 
 * http://w3g.deepnode.de/files/w3g_format.txt
+
+:author: scopz <scopatz@gmail.com>
 """
 from __future__ import unicode_literals, print_function
 import io
