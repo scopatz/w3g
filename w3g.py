@@ -2455,7 +2455,23 @@ class File(object):
             if act == 0:
                 continue
             print("  {0}: {1:.5}".format(self.player_name(pid), act/mins))
-        
+
+    def timeseries_actions(self):
+        """Returns timeseries of cummulative number of actions, as measured
+        by actions per minute. 
+        """
+        acts = {p.id: ([0], [0]) for p in self.players}
+        for e in self.events:
+            if not e.apm:
+                continue
+            t, a = acts[e.player_id]
+            if e.time == t[-1]:
+                a[-1] += 1
+            else:
+                t.append(e.time)
+                a.append(a[-1] + 1)
+        acts = {pid: (t, a) for pid, (t, a) in acts.items() if len(t) > 1}
+        return acts
 
 if __name__ == '__main__':
     f = File(sys.argv[1])
