@@ -2473,10 +2473,20 @@ class File(object):
         acts = {pid: (t, a) for pid, (t, a) in acts.items() if len(t) > 1}
         return acts
 
+    def winner(self):
+        for e in self.events[-1:-300:-1]:
+            if not isinstance(e, LeftGame):
+                continue
+            if e.result() == 'won':
+                return e.player_id
+        raise RuntimeError("Winner could not be found")
+
 if __name__ == '__main__':
     f = File(sys.argv[1])
     for event in f.events:
         print(event)
     f.print_apm()
+    print('-' * 10)
+    print('The winner is {0}'.format(f.player_name(f.winner())))
     #print(f.version_num)
     #print(f.build_num)
