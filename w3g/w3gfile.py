@@ -2022,14 +2022,51 @@ class BuildingSubmenu(Action):
     def __init__(self, f, player_id, action_block):
         super(BuildingSubmenu, self).__init__(f, player_id, action_block)
 
+class MinimapSignal(Action):
 
-0x68 - Minimap signal (ping)                                [ 13 bytes ] [APM-]
-0x67 for WarCraft III patch version <= 1.06
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- 1 dword - Location X
- 1 dword - Location Y
- 1 dword - unknown (00 00 A0 40)
+    le = BUILD_1_06
+    id = (0x67, 0x68)
+    size = 13
 
+    def __init__(self, f, player_id, action_block):
+        super(MinimapSignal, self).__init__(f, player_id, action_block)
+        offset = 1
+        x = b2i(action_block[offset:offset+DWORD])
+        offset += DWORD
+        y = b2i(action_block[offset:offset+DWORD])
+        offset += DWORD
+        self.loc = (x, y)
+
+    def __str__(self):
+        s = super(MinimapSignal, self).__str__()
+        return '{0} at ({1:.3%}, {2:.3%})'.format(s, self.loc[0]/MAXPOS, 
+                                                     self.loc[1]/MAXPOS) 
+
+class ContinueGameB(Action):
+
+    le = BUILD_1_06
+    id = (0x68, 0x69)
+    size = 17
+
+    def __init__(self, f, player_id, action_block):
+        super(ContinueGameB, self).__init__(f, player_id, action_block)
+
+class ContinueGameA(Action):
+
+    le = BUILD_1_06
+    id = (0x69, 0x6A)
+    size = 17
+
+    def __init__(self, f, player_id, action_block):
+        super(ContinueGameA, self).__init__(f, player_id, action_block)
+
+class UnknownScenario(Action):
+
+    id = 0x75
+    size = 2
+
+    def __init__(self, f, player_id, action_block):
+        super(UnknownScenario, self).__init__(f, player_id, action_block)
 
 
 # has to come after the action classes 
