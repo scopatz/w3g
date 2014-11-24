@@ -14,7 +14,7 @@ from collections import namedtuple
 
 WORD = 2   # bytes
 DWORD = 4  # bytes, double word
-NULL = b'\0'
+NULLSTR = b'\0'
 MAXPOS = 16384.0  # maps may range from -MAXPOS to MAXPOS with (0, 0) at the center
 
 # build number associated with v1.07 of the game
@@ -52,7 +52,7 @@ else:
 
 def nulltermstr(b):
     """Returns the next null terminated string from bytes and its length."""
-    i = b.find(NULL)
+    i = b.find(NULLSTR)
     s = b[:i].decode('utf-8')
     return s, i
 
@@ -2018,10 +2018,10 @@ class ChangeAllyOptions(Action):
         if b[5]:
             fs.append('shares vision')
         if b[6]:
-            s.append('shares unit control')
+            fs.append('shares unit control')
         svi = 10 if self.buil_num >= BUILD_1_07 else 9
         if b[svi]:
-            s.append('shares victory')
+            fs.append('shares victory')
         if len(fs) > 1:
             fs[-1] = 'and ' + fs[-1]
         return ', '.format(fs)
@@ -2194,7 +2194,14 @@ class File(object):
             f.close()
 
     def __del__(self):
-        if not self.f.closed:
+        if not self.closed:
+            self.f.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self ,type, value, traceback):
+        if not self.closed:
             self.f.close()
 
     @property
@@ -2204,6 +2211,10 @@ class File(object):
     @loc.setter
     def loc(self, value):
         self.f.seek(value)
+
+    @property
+    def closed(self):
+        return self.f.closed
 
     def _read_header(self):
         f = self.f
