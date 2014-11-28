@@ -1,0 +1,23 @@
+package:
+  name: w3g
+  version: "0.1"
+
+source:
+  path: .
+
+requirements:
+  build:
+    - python
+    - setuptools
+
+  run:
+    - python
+
+build:
+  entry_points:
+    - w3g = w3g:main
+
+about:
+  home: https://github.com/scopatz/w3g
+  license: CC0
+  summary: "Warcraft 3 replay file parser."
