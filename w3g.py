@@ -1735,7 +1735,7 @@ class SelectSubgroup(Action):
 
     def __str__(self):
         s = super(SelectSubgroup, self).__str__()
-        if f.build_num < BUILD_1_14B:
+        if self.f.build_num < BUILD_1_14B:
             return '{0} - #{1}'.format(s, self.subgroup)
         else:
             return '{0} - {1} {2}'.format(s, 
@@ -2496,7 +2496,7 @@ class File(object):
                 return e.player_id
         raise RuntimeError("Winner could not be found")
 
-if __name__ == '__main__':
+def main():
     f = File(sys.argv[1])
     for event in f.events:
         print(event)
@@ -2505,3 +2505,6 @@ if __name__ == '__main__':
     print('The winner is {0}'.format(f.player_name(f.winner())))
     #print(f.version_num)
     #print(f.build_num)
+
+if __name__ == '__main__':
+    main()
