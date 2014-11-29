@@ -3,7 +3,9 @@ package:
   version: "0.1"
 
 source:
-  path: .
+  #path: .
+  fn: master.zip
+  url: https://github.com/scopatz/w3g/archive/master.zip
 
 requirements:
   build:
