@@ -36,10 +36,12 @@ if sys.version_info[0] < 3:
     # to print unicode
     import codecs
     UTF8Writer = codecs.getwriter('utf8')
-    sys.stdout = UTF8Writer(sys.stdout)
+    utf8writer = UTF8Writer(sys.stdout)
     def umake(f):
         def uprint(*objects, **kw):
             uo = map(unicode, objects)
+            if 'file' not in kw:
+                kw['file'] = utf8writer
             f(*uo, **kw)
         return uprint
     print = umake(print)
