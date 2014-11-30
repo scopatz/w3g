@@ -2439,6 +2439,16 @@ class File(object):
             action_block = action_block[e.size:]
 
     @lru_cache(13)
+    def slot_record(self, pid):
+        records = self.slot_records
+        for sr in records:
+            if sr.player_id == pid:
+                break
+        else:
+            raise ValueError("could not find slot record for player ID {0}".format(pid))
+        return sr
+
+    @lru_cache(13)
     def player(self, pid):
         players = self.players
         if pid < len(players):
@@ -2449,7 +2459,7 @@ class File(object):
             if p.id == pid:
                 break
         else:
-            p = self.slot_records[pid]
+            p = self.slot_record(pid)
         return p
 
     @lru_cache(13)
@@ -2458,6 +2468,13 @@ class File(object):
         if isinstance(p, SlotRecord):
             return 'observer'
         return p.name
+
+    @lru_cache(13)
+    def player_race(self, pid):
+        p = self.player(pid)
+        if p.race == 'none' and isinstance(p, Player):
+            p = self.slot_record(pid)
+        return p.race
 
     def print_apm(self):
         acts = {p.id: 0 for p in self.players}
@@ -2488,6 +2505,25 @@ class File(object):
                 t.append(e.time)
                 a.append(a[-1] + 1)
         acts = {pid: (t, a) for pid, (t, a) in acts.items() if len(t) > 1}
+        return acts
+
+    def timegrid_actions(self, dt=1000, dur=120*60*1000):
+        """Returns timeseries of cummulative number of actions, as measured
+        by actions per minute, but on an evenly spaced grid of dt miliseconds
+        of duration dur [miliseconds]. Defaults to 1 second time steps over 2 hrs.
+        """
+        nsteps = (dur//dt) + 1
+        acts = {p.id: [0, 0] for p in self.players}
+        for e in self.events:
+            if not e.apm:
+                continue
+            a = acts[e.player_id]
+            if e.time//dt == len(a) - 2:
+                a[-1] += 1
+            else:
+                a.append(a[-1] + 1)
+        acts = {pid: a + a[-1:]*(nsteps - len(a)) for pid, a in acts.items() 
+                                                  if len(a) > 2}
         return acts
 
     def winner(self):
