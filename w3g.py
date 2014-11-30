@@ -2331,7 +2331,7 @@ class File(object):
         # back to less dense data
         self.player_count = b2i(data[offset:offset+4])
         offset += 4
-        self.game_type = GAME_TYPES[b2i(data[offset])]
+        self.game_type = GAME_TYPES.get(b2i(data[offset]), 'unknown')
         offset += 1
         priv = b2i(data[offset])
         offset += 1
@@ -2551,8 +2551,30 @@ class File(object):
         for e in self.events[-1:-300:-1]:
             if not isinstance(e, LeftGame):
                 continue
-            if e.result() == 'won':
+            result = e.result()
+            if result == 'won':
                 return e.player_id
+            elif result == 'lost':
+                players = [sr.player_id for sr in self.slot_records \
+                           if sr.team < 12 and sr.player_id > 0]
+                winner = [pid for pid in players if pid != e.player_id][0]
+                return winner
+        # if no one won or lost, find out who said gg and left
+        players = {sr.player_id for sr in self.slot_records \
+                   if sr.team < 12 and sr.player_id > 0}
+        for e in self.events[-1:-300:-1]:
+            if not isinstance(e, LeftGame):
+                continue
+            if e.player_id not in players:
+                continue
+            if e.result() != 'left':
+                continue
+            chats = {c.msg.lower() for c in self.events[-300:] \
+                        if isinstance(c, Chat) and c.player_id == e.player_id}
+            if 'g' in chats or 'gg' in chats:
+                # is loser
+                winner = [pid for pid in players if pid != e.player_id][0]
+                return winner
         raise RuntimeError("Winner could not be found")
 
 def main():
