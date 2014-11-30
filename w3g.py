@@ -1261,6 +1261,20 @@ ABILITY_FLAGS = {
     0x0040: 'subgroup command',
     0x0100: 'autocast enabled/disabled',
 }
+ITEMS_TO_RACE = {
+    b'emow': 'nightelf',  # Moon Well
+    b'etoa': 'nightelf',  # Tree of Ages
+    b'etol': 'nightelf',  # Tree of Life
+    b'ewsp': 'nightelf',  # Wisp
+    b'hpea': 'human',  # Peasant
+    b'htow': 'human',  # Town Hall
+    b'otrb': 'orc',  # Burrow
+    b'ogre': 'orc',  # Great Hall
+    b'opeo': 'orc',  # Peon
+    b'uaco': 'undead',  # Acolyte
+    b'uzig': 'undead',  # Ziggurat
+    b'unpl': 'undead',  # Necropolis
+    }
 
 class Player(namedtuple('Player', ['id', 'name', 'race', 'ishost', 
                                    'runtime', 'raw', 'size'])):
@@ -2474,6 +2488,13 @@ class File(object):
         p = self.player(pid)
         if p.race == 'none' and isinstance(p, Player):
             p = self.slot_record(pid)
+        if p.race == 'none':
+            # guess race from the units used durring the first few seconds
+            for e in self.events[:50]:
+                if e.player_id != pid:
+                    continue
+                if hasattr(e, 'ability') and e.ability in ITEMS_TO_RACE:
+                    return ITEMS_TO_RACE[e.ability]
         return p.race
 
     def print_apm(self):
