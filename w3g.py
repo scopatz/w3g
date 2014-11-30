@@ -1344,7 +1344,7 @@ class Event(object):
 
     def __init__(self, f):
         self.f = f
-        self.time = f._clock
+        self.time = f.clock
 
     def strtime(self):
         secs = self.time / 1000.0
@@ -2278,7 +2278,7 @@ class File(object):
 
     def _parse_blocks(self, data):
         self.events = []
-        self._clock = 0
+        self.clock = 0
         self._lastleft = None
         _parsers = {
             0x17: self._parse_leave_game,
@@ -2405,7 +2405,7 @@ class File(object):
             action_block = cmddata[1+WORD:i+1+WORD]
             self._parse_actions(player_id, action_block)
             cmddata = cmddata[i+1+WORD:]
-        self._clock += dt
+        self.clock += dt
         return n + 3
 
     def _parse_chat(self, data):
@@ -2502,7 +2502,7 @@ class File(object):
         for e in self.events:
             if e.apm:
                 acts[e.player_id] += 1
-        mins = self._clock / (60 * 1000.0)
+        mins = self.clock / (60 * 1000.0)
         m = "Actions per minute over {0:.3} min".format(mins)
         print('-' * len(m))
         print(m)
