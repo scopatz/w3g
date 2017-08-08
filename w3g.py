@@ -2024,18 +2024,19 @@ class ChangeAllyOptions(Action):
     def __init__(self, f, player_id, action_block):
         super(ChangeAllyOptions, self).__init__(f, player_id, action_block)
         self.ally_id = b2i(action_block[1])
-        self.flags = b2i(action_block[2:2+WORD])
+        self.flags_bits = bits(b2i(action_block[2:4])) + bits(b2i(action_block[5:9]))
 
     def flagstr(self):
         fs = []
-        b = bits(self.flags)
+        b = self.flags_bits
         if all(b[:5]):
             fs.append('is allied')
         if b[5]:
             fs.append('shares vision')
         if b[6]:
             fs.append('shares unit control')
-        svi = 10 if self.buil_num >= BUILD_1_07 else 9
+        svi = 10 if self.f.build_num >= BUILD_1_07 else 9
+
         if b[svi]:
             fs.append('shares victory')
         if len(fs) > 1:
@@ -2478,7 +2479,10 @@ class File(object):
 
     @lru_cache(13)
     def player_name(self, pid):
-        p = self.player(pid)
+        try:
+            p = self.player(pid)
+        except ValueError:
+            return "unknown"
         if isinstance(p, SlotRecord):
             return 'observer'
         return p.name
