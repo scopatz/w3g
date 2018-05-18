@@ -1,4 +1,4 @@
-"""Implements the basic w3g file class. Based on information available at 
+"""Implements the basic w3g file class. Based on information available at
 
 * http://w3g.deepnode.de/files/w3g_format.txt
 
@@ -11,6 +11,8 @@ import base64
 import zlib
 import struct
 from collections import namedtuple
+
+__version__ = '0.1.0'
 
 WORD = 2   # bytes
 DWORD = 4  # bytes, double word
@@ -59,7 +61,7 @@ def nulltermstr(b):
     return s, i
 
 def blizdecomp(b):
-    """Performs wacky blizard 'decompression' and returns bytes and len in 
+    """Performs wacky blizard 'decompression' and returns bytes and len in
     original string.
     """
     if isinstance(b, str):
@@ -337,7 +339,7 @@ ITEMS = {
     b'Npld': 'Pit Lord',
     b'nrwm': 'Orc Dragonrider',
     b'nsat': 'Trickster',
-    b'nsfp': 'Forest Troll Shadow Priest', 
+    b'nsfp': 'Forest Troll Shadow Priest',
     b'nska': 'Skeleton Archer',
     b'nskf': 'Burning Archer',
     b'nskg': 'Giant Skeleton Warrior',
@@ -1277,18 +1279,18 @@ ITEMS_TO_RACE = {
     b'unpl': 'undead',  # Necropolis
     }
 
-class Player(namedtuple('Player', ['id', 'name', 'race', 'ishost', 
+class Player(namedtuple('Player', ['id', 'name', 'race', 'ishost',
                                    'runtime', 'raw', 'size'])):
-    def __new__(cls, id=-1, name='', race='', ishost=False, runtime=-1, 
+    def __new__(cls, id=-1, name='', race='', ishost=False, runtime=-1,
                  raw=b'', size=0):
-        self = super(Player, cls).__new__(cls, id=id, name=name, race=race, 
-                                          ishost=ishost, runtime=runtime, raw=raw, 
+        self = super(Player, cls).__new__(cls, id=id, name=name, race=race,
+                                          ishost=ishost, runtime=runtime, raw=raw,
                                           size=size)
         return self
 
     @classmethod
     def from_raw(cls, data):
-        kw = {'ishost': b2i(data[0]) == 0, 
+        kw = {'ishost': b2i(data[0]) == 0,
               'id': b2i(data[1])}
         kw['name'], i = nulltermstr(data[2:])
         n = 2 + i + 1
@@ -1310,20 +1312,20 @@ class Player(namedtuple('Player', ['id', 'name', 'race', 'ishost',
         kw['raw'] = data[:n]
         return cls(**kw)
 
-class SlotRecord(namedtuple('Player', ['player_id', 'status', 'ishuman', 'team', 
-                                       'color', 'race', 'ai', 'handicap','raw', 
+class SlotRecord(namedtuple('Player', ['player_id', 'status', 'ishuman', 'team',
+                                       'color', 'race', 'ai', 'handicap','raw',
                                        'size'])):
-    def __new__(cls, player_id=-1, status='empty', ishuman=False, team=-1, color='red', 
+    def __new__(cls, player_id=-1, status='empty', ishuman=False, team=-1, color='red',
                 race='none', ai='normal', handicap=100, raw=b'', size=0):
-        self = super(SlotRecord, cls).__new__(cls, player_id=player_id, status=status, 
+        self = super(SlotRecord, cls).__new__(cls, player_id=player_id, status=status,
                                               ishuman=ishuman, team=team, color=color,
-                                              race=race, ai=ai, handicap=handicap,  
+                                              race=race, ai=ai, handicap=handicap,
                                               raw=raw, size=size)
         return self
 
     @classmethod
     def from_raw(cls, data):
-        kw = {'player_id': b2i(data[0]), 
+        kw = {'player_id': b2i(data[0]),
               'status': STATUS[b2i(data[2])],
               'ishuman': (b2i(data[3]) == 0x00),
               'team': b2i(data[4]),
@@ -1353,9 +1355,9 @@ class Event(object):
         m = int(secs / 60) % 60
         h = int(secs / 3600)
         rtn = []
-        if h > 0: 
+        if h > 0:
             rtn.append("{0:02}".format(h))
-        if m > 0: 
+        if m > 0:
             rtn.append("{0:02}".format(m))
         rtn.append("{0:06.3f}".format(s))
         return ":".join(rtn)
@@ -1476,7 +1478,7 @@ class Action(Event):
         return rtn.format(t=t, c=self.__class__.__name__, p=p)
 
     def obj(self, o):
-        if o == b'\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF': 
+        if o == b'\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF':
             return 'Ground'
         return 'Object#{0}'.format(b2i(o))
 
@@ -1572,7 +1574,7 @@ class Ability(Action):
         s = super(Ability, self).__str__()
         aflgs = ABILITY_FLAGS.get(self.flags, None)
         astr = '' if aflgs is None else ' [{0}]'.format(aflgs)
-        return '{0} - {1}{2}'.format(s, ITEMS.get(self.ability, self.ability), astr) 
+        return '{0} - {1}{2}'.format(s, ITEMS.get(self.ability, self.ability), astr)
 
 class AbilityPosition(Ability):
 
@@ -1591,8 +1593,8 @@ class AbilityPosition(Ability):
 
     def __str__(self):
         s = super(AbilityPosition, self).__str__()
-        return '{0} at ({1:.3%}, {2:.3%})'.format(s, self.loc[0]/MAXPOS, 
-                                                     self.loc[1]/MAXPOS) 
+        return '{0} at ({1:.3%}, {2:.3%})'.format(s, self.loc[0]/MAXPOS,
+                                                     self.loc[1]/MAXPOS)
 
 class AbilityPositionObject(AbilityPosition):
 
@@ -1627,7 +1629,7 @@ class GiveItem(AbilityPositionObject):
 
     def __str__(self):
         s = super(GiveItem, self)._super_str()
-        return '{0} {1} -> {2}'.format(s, self.obj(self.item), 
+        return '{0} {1} -> {2}'.format(s, self.obj(self.item),
                                           self.obj(self.object))
 
 class DoubleAbility(AbilityPosition):
@@ -1656,9 +1658,9 @@ class DoubleAbility(AbilityPosition):
         s = super(DoubleAbility, self).__str__()
         loc2str = ''
         if self.loc1 != self.loc2:
-            loc2str = ' at ({0:.3%}, {1:.3%})'.format(self.loc2[0]/MAXPOS, 
-                                                      self.loc2[1]/MAXPOS) 
-        return '{0} -> {1}{2}'.format(s, ITEMS.get(self.ability2, self.ability2), 
+            loc2str = ' at ({0:.3%}, {1:.3%})'.format(self.loc2[0]/MAXPOS,
+                                                      self.loc2[1]/MAXPOS)
+        return '{0} -> {1}{2}'.format(s, ITEMS.get(self.ability2, self.ability2),
                                       loc2str)
 
 class ChangeSelection(Action):
@@ -1688,12 +1690,12 @@ class ChangeSelection(Action):
         if not isinstance(last, ChangeSelection):
             return
         if last.mode != 0x02:
-            return 
+            return
         self.apm = False
 
     def __str__(self):
         s = super(ChangeSelection, self).__str__()
-        return '{0} {1} [{2}]'.format(s, self.modes[self.mode], 
+        return '{0} {1} [{2}]'.format(s, self.modes[self.mode],
                                       ', '.join(map(self.obj, self.objects)))
 
 class AssignGroupHotkey(Action):
@@ -1711,7 +1713,7 @@ class AssignGroupHotkey(Action):
 
     def __str__(self):
         s = super(AssignGroupHotkey, self).__str__()
-        return '{0} Assign Hotkey #{1} [{2}]'.format(s, self.hotkey, 
+        return '{0} Assign Hotkey #{1} [{2}]'.format(s, self.hotkey,
             ', '.join(map(self.obj, self.objects)))
 
 class SelectGroupHotkey(Action):
@@ -1736,7 +1738,7 @@ class SelectSubgroup(Action):
     def __init__(self, f, player_id, action_block):
         super(SelectSubgroup, self).__init__(f, player_id, action_block)
         if f.build_num < BUILD_1_14B:
-            self.size = 2 
+            self.size = 2
             self.subgroup = b2i(action_block[1])
             if self.subgroup != 0x00 and self.subgroup != 0xFF:
                 self.apm = True
@@ -1755,7 +1757,7 @@ class SelectSubgroup(Action):
         if self.f.build_num < BUILD_1_14B:
             return '{0} - #{1}'.format(s, self.subgroup)
         else:
-            return '{0} - {1} {2}'.format(s, 
+            return '{0} - {1} {2}'.format(s,
                 ITEMS.get(self.ability, self.ability), self.obj(self.object))
 
 class PreSubselect(Action):
@@ -2066,7 +2068,7 @@ class TransferResources(Action):
     def __str__(self):
         s = super(TransferResources, self).__str__()
         a = self.f.player_name(self.ally_id)
-        return '{0} transfered {1} gold and {2} lumber to {3}'.format(s, self.gold, 
+        return '{0} transfered {1} gold and {2} lumber to {3}'.format(s, self.gold,
                                                                       self.lumber, a)
 
 class MapTriggerChatCommand(Action):
@@ -2136,8 +2138,8 @@ class MinimapSignal(Action):
 
     def __str__(self):
         s = super(MinimapSignal, self).__str__()
-        return '{0} at ({1:.3%}, {2:.3%})'.format(s, self.loc[0]/MAXPOS, 
-                                                     self.loc[1]/MAXPOS) 
+        return '{0} at ({1:.3%}, {2:.3%})'.format(s, self.loc[0]/MAXPOS,
+                                                     self.loc[1]/MAXPOS)
 
 class ContinueGameB(Action):
 
@@ -2168,7 +2170,7 @@ class UnknownScenario(Action):
     def __init__(self, f, player_id, action_block):
         super(UnknownScenario, self).__init__(f, player_id, action_block)
 
-# has to come after the action classes 
+# has to come after the action classes
 _locs = locals()
 ACTIONS = {a.id: a for a in _locs.values() if hasattr(a, 'id') and \
                                     isinstance(a.id, int) and a.id > 0}
@@ -2207,7 +2209,7 @@ class File(object):
         self._read_header()
         self._read_blocks()
 
-        # clean up 
+        # clean up
         if opened_here:
             f.close()
 
@@ -2386,7 +2388,7 @@ class File(object):
             closedby = 'remote'
         elif reason == 0x0C:
             closedby = 'local'
-        else: 
+        else:
             closedby = 'unknown'
         e = LeftGame(self, player_id, closedby, res, inc, unknownflag)
         self.events.append(e)
@@ -2449,7 +2451,7 @@ class File(object):
             aid = b2i(action_block[0])
             action = actions.get(aid, None)
             if action is None:
-                return 
+                return
             e = action(self, player_id, action_block)
             self.events.append(e)
             action_block = action_block[e.size:]
@@ -2518,7 +2520,7 @@ class File(object):
 
     def timeseries_actions(self):
         """Returns timeseries of cummulative number of actions, as measured
-        by actions per minute. 
+        by actions per minute.
         """
         acts = {p.id: ([0], [0]) for p in self.players}
         for e in self.events:
@@ -2548,7 +2550,7 @@ class File(object):
                 a[-1] += 1
             else:
                 a.append(a[-1] + 1)
-        acts = {pid: a + a[-1:]*(nsteps - len(a)) for pid, a in acts.items() 
+        acts = {pid: a + a[-1:]*(nsteps - len(a)) for pid, a in acts.items()
                                                   if len(a) > 2}
         return acts
 
