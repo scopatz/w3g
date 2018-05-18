@@ -12,7 +12,7 @@ import zlib
 import struct
 from collections import namedtuple
 
-__version__ = '0.1.0'
+__version__ = '1.0.0'
 
 WORD = 2   # bytes
 DWORD = 4  # bytes, double word
