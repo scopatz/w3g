@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 try:
     from setuptools import setup
     have_setuptools = True
@@ -18,6 +18,7 @@ def main():
         author_email="scopatz@gmail.com",
         description="Access Warcraft 3 replay files from Python 2 or 3.",
         license="CC0",
+        data_files=[("", ['license', 'readme.rst']),],
         )
     if have_setuptools:
         kw['entry_points'] = {'console_scripts': ['w3g = w3g:main']}
