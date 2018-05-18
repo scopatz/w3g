@@ -133,6 +133,7 @@ SELECT_MODES = {
     0x03: 'team & race not selectable',
     0x04: 'race fixed to random',
     0xcc: 'automated match making',
+    0xac: 'automated match making',
     }
 CHAT_MODES = {0x00: 'all', 0x01: 'allies', 0x02: 'observers'}
 NUMERIC_ITEM = b'\r\x00'
