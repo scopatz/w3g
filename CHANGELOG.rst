@@ -4,6 +4,35 @@ w3g Change Log
 
 .. current developments
 
+v1.0.2
+====================
+
+**Added:**
+
+* Add support for 12 new slot colors
+* Add new result to LeftGame. Not sure what it is, but it seems to be
+  another version of 'left game'
+* Add default value for Select Modes
+* ``File.player_race()``: Try to guess actual race for Random players
+* Add another "win condition" by finding the last Player who left the
+  game
+
+**Changed:**
+
+* ``SlotRecord.from_raw()``: Drop 2 high-order bits in the "race" byte as
+  per ``w3g_format.txt`` - 4.12 notes
+
+**Fixed:**
+
+* Prevent sporadic "invalid continuation byte" error
+* Fix issue in ``Player.from_raw()`` which threw off byte seeking for the
+  rest of the file
+
+  - Usually custom_or_ladder should be 1 or 8, but it seems to often be
+    2 for newer replays
+
+
+
 v1.0.1
 ====================
 
