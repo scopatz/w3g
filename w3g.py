@@ -57,7 +57,10 @@ else:
 def nulltermstr(b):
     """Returns the next null terminated string from bytes and its length."""
     i = b.find(NULLSTR)
-    s = b[:i].decode('utf-8')
+    try:
+        s = b[:i].decode('utf-8')
+    except:
+        s = b[:i].decode('latin-1')
     return s, i
 
 def blizdecomp(b):
@@ -126,8 +129,14 @@ GAME_TYPES = {
     0x20: 'ladder team game',
     }
 STATUS = {0x00: 'empty', 0x01: 'closed', 0x02: 'used'}
-COLORS = ('red', 'blue', 'cyan', 'purple', 'yellow', 'orange', 'green',
-          'pink', 'gray', 'light blue', 'dark green', 'brown', 'observer')
+# Use RGB hex values for new colors because they are strange
+COLORS = ('red', 'blue', 'cyan', 'purple',
+          'yellow', 'orange', 'green', 'pink',
+          'gray', 'light blue', 'dark green', 'brown',
+          '9B0000', '0000C3', '00EAFF', 'BE00FE',
+          'EBCD87', 'F8A48B', 'BFFF80', 'DCB9EB',
+          '282828', 'EBF0FF', '00781E', 'A46F33',
+          'observer')
 AI_STRENGTH = {0x00: 'easy', 0x01: 'normal', 0x02: 'insane'}
 SELECT_MODES = {
     0x00: 'team & race selectable',
@@ -1296,8 +1305,8 @@ class Player(namedtuple('Player', ['id', 'name', 'race', 'ishost',
         n = 2 + i + 1
         custom_or_ladder = b2i(data[n])
         n += 1
-        if custom_or_ladder == 0x01:  # custom
-            n += 1
+        if custom_or_ladder != 0x08:  # custom
+            n += custom_or_ladder
             kw['runtime'] = 0
             kw['race'] = 'none'
         elif custom_or_ladder == 0x08:  # ladder
@@ -1329,8 +1338,8 @@ class SlotRecord(namedtuple('Player', ['player_id', 'status', 'ishuman', 'team',
               'status': STATUS[b2i(data[2])],
               'ishuman': (b2i(data[3]) == 0x00),
               'team': b2i(data[4]),
-              'color': COLORS[b2i(data[5])],
-              'race': RACES.get(b2i(data[6]), 'none'),
+              'color': COLORS[b2i(data[5])] if len(COLORS) > b2i(data[5]) else 'other',
+              'race': RACES.get(b2i(data[6] & 0x3F), 'none'),
               }
         kw['size'] = size = len(data)
         kw['raw'] = data
@@ -1396,6 +1405,7 @@ class LeftGame(Event):
         0x09: 'won',
         0x0A: 'draw',
         0x0B: 'left',
+        0x0D: 'left',
         }
 
     local_not_last_results = {
@@ -2362,7 +2372,7 @@ class File(object):
                              for n in range(nrecs)]
         self.random_seed = data[offset:offset+DWORD]
         offset += DWORD
-        self.select_mode = SELECT_MODES[b2i(data[offset])]
+        self.select_mode = SELECT_MODES.get(b2i(data[offset]), 'unknown')
         offset += 1
         self.num_start_positions = b2i(data[offset])
         offset += 1
@@ -2495,7 +2505,7 @@ class File(object):
         p = self.player(pid)
         if p.race == 'none' and isinstance(p, Player):
             p = self.slot_record(pid)
-        if p.race == 'none':
+        if p.race == 'none' or p.race == 'random':
             # guess race from the units used durring the first few seconds
             for e in self.events[:50]:
                 if e.player_id != pid:
@@ -2582,6 +2592,10 @@ class File(object):
                 # is loser
                 winner = [pid for pid in players if pid != e.player_id][0]
                 return winner
+        # if all else fails, find the last player to leave
+        for e in self.events[-1:-300:-1]:
+            if isinstance(e, LeftGame) and e.player_id in players:
+                return e.player_id
         raise RuntimeError("Winner could not be found")
 
 def main():
