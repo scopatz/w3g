@@ -2270,6 +2270,11 @@ class File(object):
         self.multiplayer = (iflags == 0x8000)
         self.replay_length = b2i(f.read(DWORD))
         self.header_checksum = b2i(f.read(DWORD))
+        
+        if self.build_num < 6089:
+            self.is_reforged = False
+        else:
+            self.is_reforged = True
 
     def _read_blocks(self):
         f = self.f
@@ -2277,8 +2282,14 @@ class File(object):
         data = b''
         for n in range(self.nblocks):
             block_size = b2i(f.read(WORD))
+            if self.is_reforged == True:
+                self.loc += 2
             block_size_decomp = b2i(f.read(WORD))
+            
             self.loc += DWORD
+            if self.is_reforged == True:
+                self.loc += 2
+                
             raw = f.read(block_size)
             # Have to use Decompression obj rather than the decompress() func.
             # This avoids 'incomplete or truncated stream' errors
