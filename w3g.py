@@ -13,7 +13,7 @@ import struct
 import binascii
 from collections import namedtuple
 
-__version__ = '1.0.3'
+__version__ = '1.0.2'
 
 WORD = 2   # bytes
 DWORD = 4  # bytes, double word
@@ -66,10 +66,7 @@ def nulltermstr(b):
 
 def fixedlengthstr(b, i):
     """Returns a string of length i from bytes"""
-    try:
-        s = b[:i].decode('utf-8')
-    except:
-        s = b[:i].decode('latin-1')
+    s = b[:i].decode('utf-8')
     return s
 
 def blizdecomp(b):
@@ -1330,10 +1327,10 @@ class Player(namedtuple('Player', ['id', 'name', 'race', 'ishost',
         kw['raw'] = data[:n]
         return cls(**kw)
 
-class Reforged_Player_Metadata(namedtuple('Reforged_Player_Metadata', 
+class ReforgedPlayerMetadata(namedtuple('ReforgedPlayerMetadata', 
                                          ['id','name','clan', 'raw', 'size'])):
     def __new__(cls, id=-1, name='', clan='', raw=b'', size=0):
-        self = super(Reforged_Player_Metadata, cls).__new__(cls, id=id, name=name, 
+        self = super(ReforgedPlayerMetadata, cls).__new__(cls, id=id, name=name, 
                                                             clan=clan, raw=raw, size=size)
         return self
         
@@ -2415,7 +2412,7 @@ class File(object):
             self.reforged_player_metadata = []
             while (b2i(data[offset]) != 0x19) & (int_attempts < 24):
                 offset += 1
-                self.reforged_player_metadata.append(Reforged_Player_Metadata.from_raw(data[offset:]))
+                self.reforged_player_metadata.append(ReforgedPlayerMetadata.from_raw(data[offset:]))
                 offset += self.reforged_player_metadata[-1].size + 1
                 int_attempts += 1
         assert b2i(data[offset]) == 0x19
