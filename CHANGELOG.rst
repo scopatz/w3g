@@ -4,6 +4,19 @@ w3g Change Log
 
 .. current developments
 
+v1.0.3
+====================
+
+**Added:**
+
+* Added ReforgedPlayerMetadata class.  This will hold the clan names for the various players once Blizzard full implements that feature.
+
+**Fixed:**
+
+* Can now also read replays from Warcraft 3 Reforged.
+
+
+
 v1.0.2
 ====================
 
