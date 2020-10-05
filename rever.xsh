@@ -6,8 +6,8 @@ $ACTIVITIES = ['version_bump', 'changelog',
                'ghrelease']
 
 $VERSION_BUMP_PATTERNS = [
-    ('w3g.py', '__version__\s*=.*', "__version__ = '$VERSION'"),
-    ('setup.py', 'version\s*=.*', "version='$VERSION',")
+    ('w3g.py', r'__version__\s*=.*', "__version__ = '$VERSION'"),
+    ('setup.py', r'version\s*=.*', "version='$VERSION',")
     ]
 $CHANGELOG_FILENAME = 'CHANGELOG.rst'
 $CHANGELOG_TEMPLATE = 'TEMPLATE.rst'
