@@ -10,6 +10,7 @@ import sys
 import base64
 import zlib
 import struct
+import binascii
 from collections import namedtuple
 
 __version__ = '1.0.2'
@@ -62,6 +63,11 @@ def nulltermstr(b):
     except:
         s = b[:i].decode('latin-1')
     return s, i
+
+def fixedlengthstr(b, i):
+    """Returns a string of length i from bytes"""
+    s = b[:i].decode('utf-8')
+    return s
 
 def blizdecomp(b):
     """Performs wacky blizard 'decompression' and returns bytes and len in
@@ -1321,6 +1327,35 @@ class Player(namedtuple('Player', ['id', 'name', 'race', 'ishost',
         kw['raw'] = data[:n]
         return cls(**kw)
 
+class ReforgedPlayerMetadata(namedtuple('ReforgedPlayerMetadata', 
+                                         ['id','name','clan', 'raw', 'size'])):
+    def __new__(cls, id=-1, name='', clan='', raw=b'', size=0):
+        self = super(ReforgedPlayerMetadata, cls).__new__(cls, id=id, name=name, 
+                                                            clan=clan, raw=raw, size=size)
+        return self
+        
+    @classmethod
+    def from_raw(cls, data):
+        n = 0
+        kw = {}
+
+        kw['size'] = b2i(data[n])
+        n += 2
+        kw['id'] = b2i(data[n])
+        n += 2
+        int_name_length = b2i(data[n])
+        n += 1
+        kw['name'] = fixedlengthstr(data[n:], int_name_length)
+        n = n + int_name_length + 1
+        int_clan_length = b2i(data[n])
+        n += 1
+        kw['clan'] = fixedlengthstr(data[n:], int_clan_length)
+        n = n + int_clan_length + 1
+        int_extra_length = b2i(data[n])
+        n += 1
+        kw['raw'] = data[:kw['size']]
+        return cls(**kw)
+
 class SlotRecord(namedtuple('Player', ['player_id', 'status', 'ishuman', 'team',
                                        'color', 'race', 'ai', 'handicap','raw',
                                        'size'])):
@@ -2270,6 +2305,11 @@ class File(object):
         self.multiplayer = (iflags == 0x8000)
         self.replay_length = b2i(f.read(DWORD))
         self.header_checksum = b2i(f.read(DWORD))
+        
+        if self.build_num < 6089:
+            self.is_reforged = False
+        else:
+            self.is_reforged = True
 
     def _read_blocks(self):
         f = self.f
@@ -2277,8 +2317,14 @@ class File(object):
         data = b''
         for n in range(self.nblocks):
             block_size = b2i(f.read(WORD))
+            if self.is_reforged == True:
+                self.loc += 2
             block_size_decomp = b2i(f.read(WORD))
+            
             self.loc += DWORD
+            if self.is_reforged == True:
+                self.loc += 2
+                
             raw = f.read(block_size)
             # Have to use Decompression obj rather than the decompress() func.
             # This avoids 'incomplete or truncated stream' errors
@@ -2340,6 +2386,7 @@ class File(object):
         self.random_hero = bool(ctl[1])
         self.random_races = bool(ctl[2])
         self.observer_referees = bool(ctl[6])
+        self.map_checksum = str(binascii.hexlify(settings[9:]), 'utf-8')
         self.map_name, i = nulltermstr(decomp[13:])
         self.creator_name, _ = nulltermstr(decomp[13+i+1:])
         # back to less dense data
@@ -2358,6 +2405,16 @@ class File(object):
             self.players.append(Player.from_raw(data[offset:]))
             offset += self.players[-1].size
             offset += 4  # 4 unknown padding bytes after each player record
+        if b2i(data[offset]) != 0x19:
+            # read in reforged metadata player metadata
+            offset += 12
+            int_attempts = 0
+            self.reforged_player_metadata = []
+            while (b2i(data[offset]) != 0x19) & (int_attempts < 24):
+                offset += 1
+                self.reforged_player_metadata.append(ReforgedPlayerMetadata.from_raw(data[offset:]))
+                offset += self.reforged_player_metadata[-1].size + 1
+                int_attempts += 1
         assert b2i(data[offset]) == 0x19
         offset += 1  # skip RecordID
         nstartbytes = b2i(data[offset:offset+WORD])
