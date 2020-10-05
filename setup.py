@@ -12,7 +12,7 @@ def main():
     kw = dict(
         name='w3g',
         py_modules=['w3g'],
-        version='1.0.2',
+        version='1.0.3',
         long_description=longdesc,
         author="Anthony Scopatz",
         author_email="scopatz@gmail.com",
