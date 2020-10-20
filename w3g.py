@@ -1445,7 +1445,7 @@ class LeftGame(Event):
 
     local_not_last_results = {
         0x01: 'disconnected',
-        0x07: 'lost',
+        0x07: 'left',
         0x08: 'lost',
         0x09: 'won',
         0x0A: 'draw',
@@ -2631,6 +2631,8 @@ class File(object):
             elif result == 'lost':
                 players = [sr.player_id for sr in self.slot_records \
                            if sr.team < 12 and sr.player_id > 0]
+                if e.player_id not in players:
+                    continue
                 winner = [pid for pid in players if pid != e.player_id][0]
                 return winner
         # if no one won or lost, find out who said gg and left
