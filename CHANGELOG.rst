@@ -4,6 +4,15 @@ w3g Change Log
 
 .. current developments
 
+v1.0.4
+====================
+
+**Fixed:**
+
+* Fixed an issue where in particular case the wrong winner was detected. https://github.com/scopatz/w3g/issues/11
+
+
+
 v1.0.3
 ====================
 
