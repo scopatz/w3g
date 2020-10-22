@@ -2281,6 +2281,10 @@ class File(object):
     def closed(self):
         return self.f.closed
 
+    @property
+    def mapname(self):
+        return self.map_name
+
     def _read_header(self):
         f = self.f
         self.loc = 28
@@ -2656,6 +2660,15 @@ class File(object):
             if isinstance(e, LeftGame) and e.player_id in players:
                 return e.player_id
         raise RuntimeError("Winner could not be found")
+
+    @lru_cache(13)
+    def map(self):
+
+        if self.map:
+            return self.map
+        else:
+            return "No map found"
+
 
 def main():
     f = File(sys.argv[1])
