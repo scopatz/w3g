@@ -2448,6 +2448,8 @@ class File(object):
         # compute inc
         if self._lastleft is None:
             inc = False
+        elif self._lastleft is not None and (len(self.players) <=2):
+            inc = True
         else:
             inc = (unknownflag == (self._lastleft.unknownflag + 1))
         # compute closedby and reult
