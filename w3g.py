@@ -2571,6 +2571,15 @@ class File(object):
                     return ITEMS_TO_RACE[e.ability]
         return p.race
 
+    @lru_cache(13)
+    def player_race_random(self, pid):
+        p = self.player(pid)
+        if p.race == 'none' and isinstance(p, Player):
+            p = self.slot_record(pid)
+        if p.race == 'random':
+            return True
+        return False
+
     def print_apm(self):
         acts = {p.id: 0 for p in self.players}
         for e in self.events:
