@@ -4,6 +4,20 @@ w3g Change Log
 
 .. current developments
 
+v1.0.5
+====================
+
+**Added:**
+
+* A new Method ```f.player_race_random(pid))``` has been added to check whether the players race has been selected by random or not.
+* Its now possible to get the mapname of a replayfile by calling the `mapname` property on the W3G File Object.
+
+**Fixed:**
+
+* Fixed detection of the correct winner in another edge case when only 2 players and no observers are involved.
+
+
+
 v1.0.4
 ====================
 
