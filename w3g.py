@@ -13,7 +13,7 @@ import struct
 import binascii
 from collections import namedtuple
 
-__version__ = '1.0.4'
+__version__ = '1.0.5'
 
 WORD = 2   # bytes
 DWORD = 4  # bytes, double word
