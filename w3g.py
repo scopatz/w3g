@@ -1328,17 +1328,19 @@ class Player(namedtuple('Player', ['id', 'name', 'race', 'ishost',
         return cls(**kw)
 
 class ReforgedPlayerMetadata(namedtuple('ReforgedPlayerMetadata', 
-                                         ['id','name','clan', 'raw', 'size'])):
-    def __new__(cls, id=-1, name='', clan='', raw=b'', size=0):
+                                         ['id','name','clan', 'portrait', 'raw', 'size'])):
+    def __new__(cls, id=-1, name='', clan='', portrait='', raw=b'', size=0):
         self = super(ReforgedPlayerMetadata, cls).__new__(cls, id=id, name=name, 
-                                                            clan=clan, raw=raw, size=size)
+                                                            clan=clan, portrait=portrait, raw=raw, size=size)
         return self
         
     @classmethod
-    def from_raw(cls, data):
+    def from_raw_clan(cls, data):
+        '''Process Reforged Player Metadata that does have clan data
+        '''
         n = 0
         kw = {}
-
+        
         kw['size'] = b2i(data[n])
         n += 2
         kw['id'] = b2i(data[n])
@@ -1351,9 +1353,39 @@ class ReforgedPlayerMetadata(namedtuple('ReforgedPlayerMetadata',
         n += 1
         kw['clan'] = fixedlengthstr(data[n:], int_clan_length)
         n = n + int_clan_length + 1
-        int_extra_length = b2i(data[n])
+        int_portrait_length = b2i(data[n])
         n += 1
+        kw['portrait'] = fixedlengthstr(data[n:], int_portrait_length)
         kw['raw'] = data[:kw['size']]
+        return cls(**kw)
+    
+    @classmethod
+    def from_raw_clanless(cls, data):
+        '''Process Reforged Player Metadata that does not have clan data
+        '''
+        n = 0
+        kw = {}
+
+        kw['size'] = b2i(data[n:n+DWORD])
+        n += DWORD + 1
+        kw['id'] = b2i(data[n])
+        n += 2
+        int_name_length = b2i(data[n])
+        n += 1
+        kw['name'] = fixedlengthstr(data[n:], int_name_length)
+        n += int_name_length
+        
+        # the position for clan is always followed by a 0x22
+        if b2i(data[n]) != 0x22:
+            int_clan_length = b2i(data[n])
+            n += 1
+            kw['clan'] = fixedlengthstr(data[n:], int_clan_length)    
+            n += int_clan_length
+        n += 1
+        int_portrait_length = b2i(data[n])
+        n += 1
+        kw['portrait'] = fixedlengthstr(data[n:], int_portrait_length)
+        kw['raw'] = data[:DWORD + kw['size']]
         return cls(**kw)
 
 class SlotRecord(namedtuple('Player', ['player_id', 'status', 'ishuman', 'team',
@@ -2409,16 +2441,40 @@ class File(object):
             self.players.append(Player.from_raw(data[offset:]))
             offset += self.players[-1].size
             offset += 4  # 4 unknown padding bytes after each player record
-        if b2i(data[offset]) != 0x19:
-            # read in reforged metadata player metadata
-            offset += 12
-            int_attempts = 0
+        
+        # Reforged Player Metadata can be in one of two formats
+        # and there is no known way to tell which one the data is using
+        # without processing it and running into an error.
+        offset_bk = offset
+
+        # Ensure reforged_player_metadata variable exists even for solo games
+        self.reforged_player_metadata = []
+        try:                  
+            if b2i(data[offset]) != 0x19:
+                # read in reforged metadata player metadata
+                offset += 12
+                int_attempts = 0
+                self.reforged_player_metadata = []
+                while (b2i(data[offset]) != 0x19) & (int_attempts < 24):
+                    offset += 1
+                    self.reforged_player_metadata.append(ReforgedPlayerMetadata.from_raw_clan(data[offset:]))
+                    offset += self.reforged_player_metadata[-1].size + 1
+                    int_attempts += 1
+        except (IndexError, UnicodeDecodeError):
+            offset = offset_bk
             self.reforged_player_metadata = []
-            while (b2i(data[offset]) != 0x19) & (int_attempts < 24):
+            while b2i(data[offset])==0x39:
                 offset += 1
-                self.reforged_player_metadata.append(ReforgedPlayerMetadata.from_raw(data[offset:]))
-                offset += self.reforged_player_metadata[-1].size + 1
-                int_attempts += 1
+                subtype = b2i(data[offset])
+                offset += 1
+                if subtype == 0x03:
+                    self.reforged_player_metadata.append(ReforgedPlayerMetadata.from_raw_clanless(data[offset:]))
+                    size = self.reforged_player_metadata[-1].size + DWORD
+                elif subtype == 0x04 or subtype == 0x05:
+                    # Skip it
+                    size = b2i(data[offset:offset+DWORD]) + DWORD
+                offset += size
+                
         assert b2i(data[offset]) == 0x19
         offset += 1  # skip RecordID
         nstartbytes = b2i(data[offset:offset+WORD])
