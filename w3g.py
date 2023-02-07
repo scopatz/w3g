@@ -1353,8 +1353,9 @@ class ReforgedPlayerMetadata(namedtuple('ReforgedPlayerMetadata',
         n += 1
         kw['clan'] = fixedlengthstr(data[n:], int_clan_length)
         n = n + int_clan_length + 1
-        int_extra_length = b2i(data[n])
+        int_portrait_length = b2i(data[n])
         n += 1
+        kw['portrait'] = fixedlengthstr(data[n:], int_portrait_length)
         kw['raw'] = data[:kw['size']]
         return cls(**kw)
     
